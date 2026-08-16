@@ -29,16 +29,18 @@ export async function createDocumentView({
   name,
   query,
   description,
+  showOnHomePage,
 }: {
   organizationId: string;
   name: string;
   query: string;
   description?: string | null;
+  showOnHomePage?: boolean;
 }) {
   const { documentView } = await apiClient<{ documentView: AsDto<DocumentView> }>({
     path: `/api/organizations/${organizationId}/document-views`,
     method: 'POST',
-    body: { name, query, description },
+    body: { name, query, description, showOnHomePage },
   });
 
   return { documentView: coerceDates(documentView) };
@@ -50,17 +52,19 @@ export async function updateDocumentView({
   name,
   query,
   description,
+  showOnHomePage,
 }: {
   organizationId: string;
   documentViewId: string;
   name?: string;
   query?: string;
   description?: string | null;
+  showOnHomePage?: boolean;
 }) {
   const { documentView } = await apiClient<{ documentView: AsDto<DocumentView> }>({
     path: `/api/organizations/${organizationId}/document-views/${documentViewId}`,
     method: 'PUT',
-    body: { name, query, description },
+    body: { name, query, description, showOnHomePage },
   });
 
   return { documentView: coerceDates(documentView) };

@@ -803,6 +803,8 @@ export const translations = {
   'document-views.form.description.optional': '(optional)',
   'document-views.form.description.placeholder': 'Eg. Documents waiting to be processed',
   'document-views.form.description.max-length': 'Description must be less than 256 characters',
+  'document-views.form.show-on-home-page.label': 'Show on home page',
+  'document-views.form.show-on-home-page.hint': "Display this view's documents on the organization home page",
   'document-views.actions.menu': 'View actions',
   'document-views.view.no-documents': "No documents match this view's query.",
   'document-views.view.not-found': 'View not found.',

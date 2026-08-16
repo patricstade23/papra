@@ -32,12 +32,13 @@ function setupCreateDocumentViewRoute({ app, db }: RouteDefinitionContext) {
         name: documentViewNameSchema,
         query: searchDocumentsQuerySchema,
         description: v.optional(documentViewDescriptionSchema),
+        showOnHomePage: v.optional(v.boolean()),
       }),
     ),
     async (context) => {
       const { userId } = getUser({ context });
       const { organizationId } = context.req.valid('param');
-      const { name, query, description } = context.req.valid('json');
+      const { name, query, description, showOnHomePage } = context.req.valid('json');
 
       const documentViewsRepository = createDocumentViewsRepository({ db });
       const organizationsRepository = createOrganizationsRepository({ db });
@@ -45,7 +46,7 @@ function setupCreateDocumentViewRoute({ app, db }: RouteDefinitionContext) {
       await ensureUserIsInOrganization({ userId, organizationId, organizationsRepository });
 
       const { documentView } = await documentViewsRepository.createDocumentView({
-        documentView: { organizationId, name, query, description },
+        documentView: { organizationId, name, query, description, showOnHomePage },
       });
 
       return context.json({ documentView });
@@ -91,12 +92,13 @@ function setupUpdateDocumentViewRoute({ app, db }: RouteDefinitionContext) {
         name: documentViewNameSchema,
         query: searchDocumentsQuerySchema,
         description: v.optional(documentViewDescriptionSchema),
+        showOnHomePage: v.optional(v.boolean()),
       }),
     ),
     async (context) => {
       const { userId } = getUser({ context });
       const { organizationId, documentViewId } = context.req.valid('param');
-      const { name, query, description } = context.req.valid('json');
+      const { name, query, description, showOnHomePage } = context.req.valid('json');
 
       const documentViewsRepository = createDocumentViewsRepository({ db });
       const organizationsRepository = createOrganizationsRepository({ db });
@@ -115,6 +117,7 @@ function setupUpdateDocumentViewRoute({ app, db }: RouteDefinitionContext) {
         name,
         query,
         description,
+        showOnHomePage,
       });
 
       return context.json({ documentView });
