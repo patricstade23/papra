@@ -68,6 +68,7 @@ async function createDocumentView({
     query: string;
     description?: string | null;
     organizationId: string;
+    showOnHomePage?: boolean;
   };
   db: Database;
 }) {
@@ -92,18 +93,20 @@ async function updateDocumentView({
   name,
   query,
   description,
+  showOnHomePage,
   db,
 }: {
   documentViewId: string;
   name?: string;
   query?: string;
   description?: string | null;
+  showOnHomePage?: boolean;
   db: Database;
 }) {
   const [result, error] = await safely(
     db
       .update(documentViewsTable)
-      .set(omitUndefined({ name, query, description }))
+      .set(omitUndefined({ name, query, description, showOnHomePage }))
       .where(eq(documentViewsTable.id, documentViewId))
       .returning(),
   );
