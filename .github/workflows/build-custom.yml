@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - feat/document-views-on-home-page
+      - main
   workflow_dispatch:
 
 jobs:
@@ -29,6 +30,15 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Set tag
+        id: tag
+        run: |
+          if [ "${{ github.ref_name }}" = "main" ]; then
+            echo "tag=latest" >> $GITHUB_OUTPUT
+          else
+            echo "tag=feat-views" >> $GITHUB_OUTPUT
+          fi
+
       - name: Build and push
         uses: docker/build-push-action@v6
         with:
@@ -36,7 +46,7 @@ jobs:
           file: packages/app/Dockerfile
           push: true
           platforms: linux/amd64,linux/arm64
-          tags: ghcr.io/patricstade23/papra:feat-views
+          tags: ghcr.io/patricstade23/papra:${{ steps.tag.outputs.tag }}
           build-args: |
-            PAPRA_VERSION=feat-views
+            PAPRA_VERSION=${{ steps.tag.outputs.tag }}
             GIT_COMMIT=${{ github.sha }}
