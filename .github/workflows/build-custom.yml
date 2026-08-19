@@ -3,7 +3,6 @@ name: Build Custom Image
 on:
   push:
     branches:
-      - feat/document-views-on-home-page
       - main
   workflow_dispatch:
 
