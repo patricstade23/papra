@@ -1,4 +1,4 @@
-import { sqliteTable, text } from 'drizzle-orm/sqlite-core';
+import { integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 import { organizationsTable } from '../organizations/organizations.table';
 import { createPrimaryKeyField, createTimestampColumns } from '../shared/db/columns.helpers';
 import { DOCUMENT_VIEW_ID_PREFIX } from './document-views.constants';
@@ -13,4 +13,5 @@ export const documentViewsTable = sqliteTable('document_views', {
   name: text('name').notNull(),
   query: text('query').notNull(),
   description: text('description'),
+  showOnHomePage: integer('show_on_home_page', { mode: 'boolean' }).notNull().default(false),
 });

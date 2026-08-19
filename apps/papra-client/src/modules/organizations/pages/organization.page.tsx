@@ -2,7 +2,9 @@ import type { Component } from 'solid-js';
 import { formatBytes } from '@corentinth/chisels';
 import { useParams } from '@solidjs/router';
 import { keepPreviousData, useQuery } from '@tanstack/solid-query';
-import { Show, Suspense } from 'solid-js';
+import { For, Show, Suspense } from 'solid-js';
+import { DocumentViewHomeSection } from '@/modules/document-views/components/document-view-home-section.component';
+import { fetchDocumentViews } from '@/modules/document-views/document-views.services';
 import { useDocumentUpload } from '@/modules/documents/components/document-import-status.component';
 import { DocumentUploadArea } from '@/modules/documents/components/document-upload-area.component';
 import {
@@ -41,6 +43,11 @@ export const OrganizationPage: Component = () => {
   const statsQuery = useQuery(() => ({
     queryKey: ['organizations', params.organizationId, 'documents', 'stats'],
     queryFn: async () => getOrganizationDocumentsStats({ organizationId: params.organizationId }),
+  }));
+
+  const documentViewsQuery = useQuery(() => ({
+    queryKey: ['organizations', params.organizationId, 'document-views'],
+    queryFn: () => fetchDocumentViews({ organizationId: params.organizationId }),
   }));
 
   const { promptImport } = useDocumentUpload();
@@ -98,6 +105,15 @@ export const OrganizationPage: Component = () => {
                 )}
               </Show>
             </div>
+
+            <For each={documentViewsQuery.data?.documentViews.filter((v) => v.showOnHomePage)}>
+              {(view) => (
+                <DocumentViewHomeSection
+                  documentView={view}
+                  organizationId={params.organizationId}
+                />
+              )}
+            </For>
 
             <h2 class="text-lg font-semibold mb-4">
               {t('organizations.details.latest-documents')}

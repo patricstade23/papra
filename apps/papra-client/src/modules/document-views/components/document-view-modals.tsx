@@ -5,6 +5,7 @@ import { useNavigate } from '@solidjs/router';
 import { useMutation } from '@tanstack/solid-query';
 import { createSignal } from 'solid-js';
 import * as v from 'valibot';
+import { setValue } from '@modular-forms/solid';
 import { useI18n } from '@/modules/i18n/i18n.provider';
 import { createForm } from '@/modules/shared/form/form';
 import { makeReturnVoidAsync } from '@/modules/shared/functions/void';
@@ -19,17 +20,18 @@ import {
   DialogTrigger,
 } from '@/modules/ui/components/dialog';
 import { createToast } from '@/modules/ui/components/sonner';
+import { Switch, SwitchControl, SwitchLabel, SwitchThumb } from '@/modules/ui/components/switch';
 import { TextArea } from '@/modules/ui/components/textarea';
 import { TextField, TextFieldLabel, TextFieldRoot } from '@/modules/ui/components/textfield';
 import { createDocumentView, updateDocumentView } from '../document-views.services';
 
 const DocumentViewForm: Component<{
-  onSubmit: (values: { name: string; query: string; description?: string }) => unknown;
-  initialValues?: { name?: string; query?: string; description?: string | null };
+  onSubmit: (values: { name: string; query: string; description?: string; showOnHomePage?: boolean }) => unknown;
+  initialValues?: { name?: string; query?: string; description?: string | null; showOnHomePage?: boolean | null };
   submitButton: JSX.Element;
 }> = (props) => {
   const { t } = useI18n();
-  const { Form, Field } = createForm({
+  const { form, Form, Field } = createForm({
     onSubmit: makeReturnVoidAsync(props.onSubmit),
     schema: v.object({
       name: v.pipe(
@@ -51,10 +53,12 @@ const DocumentViewForm: Component<{
           v.maxLength(256, t('document-views.form.description.max-length')),
         ),
       ),
+      showOnHomePage: v.optional(v.boolean(), false),
     }),
     initialValues: {
       ...props.initialValues,
       description: props.initialValues?.description ?? undefined,
+      showOnHomePage: props.initialValues?.showOnHomePage ?? false,
     },
   });
 
@@ -117,6 +121,22 @@ const DocumentViewForm: Component<{
         )}
       </Field>
 
+      <Field name="showOnHomePage" type="boolean">
+        {(field) => (
+          <Switch
+            class="flex items-center justify-between gap-4 mb-4"
+            checked={field.value ?? false}
+            onChange={(checked) => setValue(form, 'showOnHomePage', checked)}
+          >
+            <div>
+              <SwitchLabel class="text-sm font-medium">{t('document-views.form.show-on-home-page.label')}</SwitchLabel>
+              <div class="text-xs text-muted-foreground">{t('document-views.form.show-on-home-page.hint')}</div>
+            </div>
+            <SwitchControl><SwitchThumb /></SwitchControl>
+          </Switch>
+        )}
+      </Field>
+
       <div class="flex justify-end mt-6">{props.submitButton}</div>
     </Form>
   );
@@ -133,12 +153,13 @@ export const CreateDocumentViewModal: Component<{
   const { getErrorMessage } = useI18nApiErrors({ t });
 
   const mutation = useMutation(() => ({
-    mutationFn: async (data: { name: string; query: string; description?: string }) =>
+    mutationFn: async (data: { name: string; query: string; description?: string; showOnHomePage?: boolean }) =>
       createDocumentView({
         organizationId: props.organizationId,
         name: data.name,
         query: data.query,
         description: data.description,
+        showOnHomePage: data.showOnHomePage,
       }),
     onSuccess: async ({ documentView }, variables) => {
       await queryClient.invalidateQueries({
@@ -195,13 +216,14 @@ export const UpdateDocumentViewModal: Component<{
   const { getErrorMessage } = useI18nApiErrors({ t });
 
   const mutation = useMutation(() => ({
-    mutationFn: async (data: { name: string; query: string; description?: string }) =>
+    mutationFn: async (data: { name: string; query: string; description?: string; showOnHomePage?: boolean }) =>
       updateDocumentView({
         organizationId: props.organizationId,
         documentViewId: props.documentView.id,
         name: data.name,
         query: data.query,
         description: data.description ?? null,
+        showOnHomePage: data.showOnHomePage,
       }),
     onSuccess: async (_, variables) => {
       await queryClient.invalidateQueries({
