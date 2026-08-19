@@ -524,14 +524,7 @@ export const translations = {
   'documents.custom-properties.document-relation-manage': 'Manage documents',
   'documents.custom-properties.no-results': 'No results',
 
-  'documents.rename.title': 'Rename document',
-  'documents.rename.form.name.label': 'Name',
-  'documents.rename.form.name.placeholder': 'Example: Invoice 2024',
-  'documents.rename.form.name.required': 'Please enter a name for the document',
-  'documents.rename.form.name.max-length': 'The name must be less than 255 characters',
-  'documents.rename.form.submit': 'Rename document',
   'documents.rename.success': 'Document renamed successfully',
-  'documents.rename.cancel': 'Cancel',
 
   'import-documents.title.error': '{{ count }} documents failed',
   'import-documents.title.success': '{{ count }} documents imported',
