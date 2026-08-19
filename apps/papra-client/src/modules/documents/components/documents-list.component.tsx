@@ -11,7 +11,8 @@ import {
   getCoreRowModel,
   getPaginationRowModel,
 } from '@tanstack/solid-table';
-import { For, Match, Show, Switch } from 'solid-js';
+import { useMutation } from '@tanstack/solid-query';
+import { createSignal, For, Match, Show, Switch } from 'solid-js';
 import { RelativeTime } from '@/modules/i18n/components/RelativeTime';
 import { useI18n } from '@/modules/i18n/i18n.provider';
 import { cn } from '@/modules/shared/style/cn';
@@ -38,7 +39,110 @@ import {
   getDocumentNameExtension,
   getDocumentNameWithoutExtension,
 } from '../document.models';
+import { invalidateOrganizationDocumentsQuery } from '../documents.composables';
+import { updateDocument } from '../documents.services';
 import { DocumentManagementDropdown } from './document-management-dropdown.component';
+
+const DocumentNameCell: Component<{ document: Document }> = (props) => {
+  const { t } = useI18n();
+  const [isEditing, setIsEditing] = createSignal(false);
+  const [draftName, setDraftName] = createSignal('');
+  let isCancelling = false;
+
+  const renameMutation = useMutation(() => ({
+    mutationFn: async ({ name }: { name: string }) =>
+      updateDocument({ documentId: props.document.id, organizationId: props.document.organizationId, name }),
+    onSuccess: async () => {
+      await invalidateOrganizationDocumentsQuery({ organizationId: props.document.organizationId });
+    },
+  }));
+
+  const startEditing = () => {
+    setDraftName(getDocumentNameWithoutExtension({ name: props.document.name }));
+    setIsEditing(true);
+  };
+
+  const save = async () => {
+    const draft = draftName().trim();
+    const extension = getDocumentNameExtension({ name: props.document.name });
+    const newName = extension ? `${draft}.${extension}` : draft;
+    if (draft && newName !== props.document.name) {
+      await renameMutation.mutateAsync({ name: newName });
+    }
+    setIsEditing(false);
+  };
+
+  return (
+    <div class="overflow-hidden flex gap-4 items-center max-w-500px">
+      <div class="bg-muted flex items-center justify-center p-2 rounded-lg flex-shrink-0">
+        <div class={cn(getDocumentIcon({ document: props.document }), 'size-6 text-primary')} />
+      </div>
+
+      <div class="flex-1 flex flex-col gap-1 truncate">
+        <Show
+          when={isEditing()}
+          fallback={
+            <div class="flex items-center gap-1 group/name">
+              <A
+                href={`/organizations/${props.document.organizationId}/documents/${props.document.id}`}
+                class="font-bold truncate hover:underline"
+                title={props.document.name}
+              >
+                {getDocumentNameWithoutExtension({ name: props.document.name })}
+              </A>
+              <button
+                type="button"
+                class="i-tabler-pencil size-3.5 text-muted-foreground opacity-0 group-hover/name:opacity-100 transition-opacity flex-shrink-0 ml-1"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  startEditing();
+                }}
+                aria-label={t('documents.management.rename')}
+              />
+            </div>
+          }
+        >
+          <input
+            class="font-bold bg-transparent border-b border-primary outline-none w-full min-w-0"
+            value={draftName()}
+            onInput={(e) => setDraftName(e.currentTarget.value)}
+            onBlur={() => {
+              if (isCancelling) {
+                isCancelling = false;
+                setIsEditing(false);
+                return;
+              }
+              void save();
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                (e.target as HTMLInputElement).blur();
+              }
+              if (e.key === 'Escape') {
+                e.preventDefault();
+                isCancelling = true;
+                (e.target as HTMLInputElement).blur();
+              }
+            }}
+            ref={(el) => setTimeout(() => el?.focus(), 0)}
+          />
+        </Show>
+
+        <div class="text-xs text-muted-foreground lh-tight">
+          {[
+            formatBytes({ bytes: props.document.originalSize, base: 1000 }),
+            getDocumentNameExtension({ name: props.document.name }),
+          ]
+            .filter(Boolean)
+            .join(' - ')}{' '}
+          - <RelativeTime date={props.document.createdAt} />
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const selectionColumn: ColumnDef<Document> = {
   id: 'select',
@@ -180,37 +284,7 @@ export const DocumentsPaginatedList: Component<{
         id: 'name',
         accessorFn: (row) => row.name,
         enableSorting: true,
-        cell: (data) => (
-          <div class="overflow-hidden flex gap-4 items-center max-w-500px">
-            <div class="bg-muted flex items-center justify-center p-2 rounded-lg">
-              <div
-                class={cn(getDocumentIcon({ document: data.row.original }), 'size-6 text-primary')}
-              />
-            </div>
-
-            <div class="flex-1 flex flex-col gap-1 truncate">
-              <A
-                href={`/organizations/${data.row.original.organizationId}/documents/${data.row.original.id}`}
-                class="font-bold truncate block hover:underline"
-                title={data.row.original.name}
-              >
-                {getDocumentNameWithoutExtension({
-                  name: data.row.original.name,
-                })}
-              </A>
-
-              <div class="text-xs text-muted-foreground lh-tight">
-                {[
-                  formatBytes({ bytes: data.row.original.originalSize, base: 1000 }),
-                  getDocumentNameExtension({ name: data.row.original.name }),
-                ]
-                  .filter(Boolean)
-                  .join(' - ')}{' '}
-                - <RelativeTime date={data.row.original.createdAt} />
-              </div>
-            </div>
-          </div>
-        ),
+        cell: (data) => <DocumentNameCell document={data.row.original} />,
       },
       ...(props.extraColumns ?? []),
     ],

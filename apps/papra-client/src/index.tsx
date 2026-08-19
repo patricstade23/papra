@@ -9,7 +9,6 @@ import { CommandPaletteProvider } from './modules/command-palette/command-palett
 import { isDemoMode } from './modules/config/config';
 import { ConfigProvider } from './modules/config/config.provider';
 import { ShareDocumentDialogProvider } from './modules/document-share-links/components/share-document-dialog.component';
-import { RenameDocumentDialogProvider } from './modules/documents/components/rename-document-button.component';
 import { I18nProvider } from './modules/i18n/i18n.provider';
 import { AboutDialogProvider } from './modules/shared/components/about-dialog';
 import { ConfirmModalProvider } from './modules/shared/confirm';
@@ -43,13 +42,11 @@ render(() => {
                   <CommandPaletteProvider>
                     <ConfigProvider>
                       <AboutDialogProvider>
-                        <RenameDocumentDialogProvider>
-                          <ShareDocumentDialogProvider>
-                            <div class="min-h-screen font-sans text-sm font-400">
-                              {props.children}
-                            </div>
-                          </ShareDocumentDialogProvider>
-                        </RenameDocumentDialogProvider>
+                        <ShareDocumentDialogProvider>
+                          <div class="min-h-screen font-sans text-sm font-400">
+                            {props.children}
+                          </div>
+                        </ShareDocumentDialogProvider>
                         {DemoIndicator && <DemoIndicator />}
                       </AboutDialogProvider>
                     </ConfigProvider>

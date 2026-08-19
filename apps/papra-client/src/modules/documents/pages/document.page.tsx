@@ -45,13 +45,15 @@ import { DocumentContentEditionPanel } from '../components/document-content-edit
 import { DocumentDatePicker } from '../components/document-date-picker.component';
 import { DocumentPreview } from '../components/document-preview.component';
 import { DocumentOpenWithDropdownItems } from '../components/open-with.component';
-import { useRenameDocumentDialog } from '../components/rename-document-button.component';
 import {
   getDaysBeforePermanentDeletion,
   getDocumentActivityIcon,
+  getDocumentNameExtension,
+  getDocumentNameWithoutExtension,
   getDocumentOpenWithApps,
 } from '../document.models';
 import {
+  invalidateOrganizationDocumentsQuery,
   useDeleteDocument,
   useDownloadDocument,
   useRestoreDocument,
@@ -288,8 +290,24 @@ export const DocumentPage: Component = () => {
   const { restore, getIsRestoring } = useRestoreDocument();
   const navigate = useNavigate();
   const { config } = useConfig();
-  const { openRenameDialog } = useRenameDocumentDialog();
+  const queryClient = useQueryClient();
   const { openShareDialog } = useShareDocumentDialog();
+
+  const [isEditingInfoName, setIsEditingInfoName] = createSignal(false);
+  const [draftInfoName, setDraftInfoName] = createSignal('');
+  let isCancellingInfoEdit = false;
+
+  const renameMutation = useMutation(() => ({
+    mutationFn: async ({ name }: { name: string }) =>
+      updateDocument({ documentId: params.documentId, organizationId: params.organizationId, name }),
+    onSuccess: async () => {
+      createToast({ message: t('documents.rename.success'), type: 'success' });
+      await invalidateOrganizationDocumentsQuery({ organizationId: params.organizationId });
+      void queryClient.invalidateQueries({
+        queryKey: ['organizations', params.organizationId, 'documents', params.documentId],
+      });
+    },
+  }));
 
   const getInitialTab = (): Tab => {
     const tab = searchParams.tab;
@@ -366,26 +384,12 @@ export const DocumentPage: Component = () => {
             {(getDocument) => (
               <div class="flex gap-4 md:pr-6">
                 <div class="flex-1 min-w-0">
-                  <Button
-                    variant="ghost"
-                    class="flex items-center gap-2 group bg-transparent! px-0 text-left h-auto max-w-full"
-                    onClick={() =>
-                      openRenameDialog({
-                        documentId: getDocument().id,
-                        organizationId: params.organizationId,
-                        documentName: getDocument().name,
-                      })
-                    }
+                  <h1
+                    class="text-xl font-semibold lh-tight min-w-0 break-all mb-1"
+                    title={getDocument().name}
                   >
-                    <h1
-                      class="text-xl font-semibold lh-tight min-w-0 break-all"
-                      title={getDocument().name}
-                    >
-                      {getDocument().name}
-                    </h1>
-
-                    <div class="i-tabler-pencil size-4 text-muted-foreground group-hover:text-foreground transition-colors flex-shrink-0" />
-                  </Button>
+                    {getDocument().name}
+                  </h1>
                   <p class="text-sm text-muted-foreground mb-6">{getDocument().id}</p>
 
                   <div class="flex gap-2 mb-2">
@@ -484,23 +488,57 @@ export const DocumentPage: Component = () => {
                             {
                               label: t('documents.info.name'),
                               value: (
-                                <Button
-                                  variant="ghost"
-                                  class="flex items-center gap-2 group bg-transparent! p-0 h-auto text-left max-w-full"
-                                  onClick={() =>
-                                    openRenameDialog({
-                                      documentId: getDocument().id,
-                                      organizationId: params.organizationId,
-                                      documentName: getDocument().name,
-                                    })
+                                <Show
+                                  when={isEditingInfoName()}
+                                  fallback={
+                                    <div class="flex items-center gap-1 group/infoname">
+                                      <span class="truncate" title={getDocument().name}>
+                                        {getDocument().name}
+                                      </span>
+                                      <button
+                                        type="button"
+                                        class="i-tabler-pencil size-3.5 text-muted-foreground flex-shrink-0"
+                                        onClick={() => {
+                                          setDraftInfoName(getDocumentNameWithoutExtension({ name: getDocument().name }));
+                                          setIsEditingInfoName(true);
+                                        }}
+                                        aria-label={t('documents.management.rename')}
+                                      />
+                                    </div>
                                   }
                                 >
-                                  <span class="truncate" title={getDocument().name}>
-                                    {getDocument().name}
-                                  </span>
-
-                                  <div class="i-tabler-pencil size-4 text-muted-foreground group-hover:text-foreground transition-colors flex-shrink-0" />
-                                </Button>
+                                  <input
+                                    class="bg-transparent border-b border-primary outline-none w-full min-w-0 text-sm"
+                                    value={draftInfoName()}
+                                    onInput={(e) => setDraftInfoName(e.currentTarget.value)}
+                                    onBlur={async () => {
+                                      if (isCancellingInfoEdit) {
+                                        isCancellingInfoEdit = false;
+                                        setIsEditingInfoName(false);
+                                        return;
+                                      }
+                                      const draft = draftInfoName().trim();
+                                      const extension = getDocumentNameExtension({ name: getDocument().name });
+                                      const newName = extension ? `${draft}.${extension}` : draft;
+                                      if (draft && newName !== getDocument().name) {
+                                        await renameMutation.mutateAsync({ name: newName });
+                                      }
+                                      setIsEditingInfoName(false);
+                                    }}
+                                    onKeyDown={(e) => {
+                                      if (e.key === 'Enter') {
+                                        e.preventDefault();
+                                        (e.target as HTMLInputElement).blur();
+                                      }
+                                      if (e.key === 'Escape') {
+                                        e.preventDefault();
+                                        isCancellingInfoEdit = true;
+                                        (e.target as HTMLInputElement).blur();
+                                      }
+                                    }}
+                                    ref={(el) => setTimeout(() => el?.focus(), 0)}
+                                  />
+                                </Show>
                               ),
                               icon: 'i-tabler-file-text',
                             },
