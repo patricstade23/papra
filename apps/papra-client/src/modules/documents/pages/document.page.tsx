@@ -299,7 +299,11 @@ export const DocumentPage: Component = () => {
 
   const renameMutation = useMutation(() => ({
     mutationFn: async ({ name }: { name: string }) =>
-      updateDocument({ documentId: params.documentId, organizationId: params.organizationId, name }),
+      updateDocument({
+        documentId: params.documentId,
+        organizationId: params.organizationId,
+        name,
+      }),
     onSuccess: async () => {
       createToast({ message: t('documents.rename.success'), type: 'success' });
       await invalidateOrganizationDocumentsQuery({ organizationId: params.organizationId });
@@ -499,7 +503,11 @@ export const DocumentPage: Component = () => {
                                         type="button"
                                         class="i-tabler-pencil size-3.5 text-muted-foreground flex-shrink-0"
                                         onClick={() => {
-                                          setDraftInfoName(getDocumentNameWithoutExtension({ name: getDocument().name }));
+                                          setDraftInfoName(
+                                            getDocumentNameWithoutExtension({
+                                              name: getDocument().name,
+                                            }),
+                                          );
                                           setIsEditingInfoName(true);
                                         }}
                                         aria-label={t('documents.management.rename')}
@@ -518,7 +526,9 @@ export const DocumentPage: Component = () => {
                                         return;
                                       }
                                       const draft = draftInfoName().trim();
-                                      const extension = getDocumentNameExtension({ name: getDocument().name });
+                                      const extension = getDocumentNameExtension({
+                                        name: getDocument().name,
+                                      });
                                       const newName = extension ? `${draft}.${extension}` : draft;
                                       if (draft && newName !== getDocument().name) {
                                         await renameMutation.mutateAsync({ name: newName });

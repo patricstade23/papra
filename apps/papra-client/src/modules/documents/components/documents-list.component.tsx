@@ -51,7 +51,11 @@ const DocumentNameCell: Component<{ document: Document }> = (props) => {
 
   const renameMutation = useMutation(() => ({
     mutationFn: async ({ name }: { name: string }) =>
-      updateDocument({ documentId: props.document.id, organizationId: props.document.organizationId, name }),
+      updateDocument({
+        documentId: props.document.id,
+        organizationId: props.document.organizationId,
+        name,
+      }),
     onSuccess: async () => {
       await invalidateOrganizationDocumentsQuery({ organizationId: props.document.organizationId });
     },
