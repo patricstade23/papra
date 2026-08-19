@@ -523,14 +523,7 @@ export const translations: Partial<TranslationsDictionary> = {
   'documents.custom-properties.document-relation-manage': 'Documenten beheren',
   'documents.custom-properties.no-results': 'Geen resultaten',
 
-  'documents.rename.title': 'Document hernoemen',
-  'documents.rename.form.name.label': 'Naam',
-  'documents.rename.form.name.placeholder': 'Voorbeeld: Factuur 2024',
-  'documents.rename.form.name.required': 'Voer een naam voor het document in',
-  'documents.rename.form.name.max-length': 'De naam mag minder dan 255 tekens bevatten',
-  'documents.rename.form.submit': 'Document hernoemen',
   'documents.rename.success': 'Document succesvol hernoemd',
-  'documents.rename.cancel': 'Annuleren',
 
   'import-documents.title.error': '{{ count }} documenten mislukt',
   'import-documents.title.success': '{{ count }} documenten geïmporteerd',

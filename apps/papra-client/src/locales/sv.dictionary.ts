@@ -515,14 +515,7 @@ export const translations: Partial<TranslationsDictionary> = {
   'documents.custom-properties.document-relation-manage': 'Hantera dokument',
   'documents.custom-properties.no-results': 'Inga resultat',
 
-  'documents.rename.title': 'Byt namn på dokument',
-  'documents.rename.form.name.label': 'Namn',
-  'documents.rename.form.name.placeholder': 'Exempel: Faktura 2024',
-  'documents.rename.form.name.required': 'Ange ett namn för dokumentet',
-  'documents.rename.form.name.max-length': 'Namnet måste ha färre än 255 tecken',
-  'documents.rename.form.submit': 'Byt namn på dokument',
   'documents.rename.success': 'Dokumentet har bytt namn',
-  'documents.rename.cancel': 'Avbryt',
 
   'import-documents.title.error': '{{ count }} dokument misslyckades',
   'import-documents.title.success': '{{ count }} dokument importerades',

@@ -549,14 +549,7 @@ export const translations = {
   'documents.custom-properties.document-relation-manage': 'Gestiona els documents',
   'documents.custom-properties.no-results': 'Sense resultats',
 
-  'documents.rename.title': 'Canvia el nom del document',
-  'documents.rename.form.name.label': 'Nom',
-  'documents.rename.form.name.placeholder': 'Exemple: Factura 2024',
-  'documents.rename.form.name.required': 'Si us plau, introdueix un nom per al document',
-  'documents.rename.form.name.max-length': 'El nom ha de tenir com a màxim 255 caràcters',
-  'documents.rename.form.submit': 'Canvia el nom del document',
   'documents.rename.success': 'Document reanomenat correctament',
-  'documents.rename.cancel': 'Cancel·la',
 
   'import-documents.title.error':
     '{{ count }} {{ count, =1:document ha fallat, documents han fallat }}',

@@ -520,14 +520,7 @@ export const translations: Partial<TranslationsDictionary> = {
   'documents.custom-properties.document-relation-manage': 'Διαχείριση εγγράφων',
   'documents.custom-properties.no-results': 'Δεν βρέθηκαν αποτελέσματα',
 
-  'documents.rename.title': 'Μετονομασία εγγράφου',
-  'documents.rename.form.name.label': 'Όνομα',
-  'documents.rename.form.name.placeholder': 'Π.χ. Τιμολόγιο 2024',
-  'documents.rename.form.name.required': 'Παρακαλώ εισαγάγετε ένα όνομα για το έγγραφο',
-  'documents.rename.form.name.max-length': 'Το όνομα πρέπει να έχει λιγότερους από 255 χαρακτήρες',
-  'documents.rename.form.submit': 'Μετονομασία εγγράφου',
   'documents.rename.success': 'Το έγγραφο μετονομάστηκε με επιτυχία',
-  'documents.rename.cancel': 'Ακύρωση',
 
   'import-documents.title.error': '{{ count }} έγγραφα απέτυχαν',
   'import-documents.title.success': '{{ count }} έγγραφα εισήχθησαν',

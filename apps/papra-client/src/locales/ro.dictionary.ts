@@ -520,14 +520,7 @@ export const translations: Partial<TranslationsDictionary> = {
   'documents.custom-properties.document-relation-manage': 'Gestionare documente',
   'documents.custom-properties.no-results': 'Niciun rezultat',
 
-  'documents.rename.title': 'Redenumește documentul',
-  'documents.rename.form.name.label': 'Nume',
-  'documents.rename.form.name.placeholder': 'Exemplu: Factura 2024',
-  'documents.rename.form.name.required': 'Te rugăm să introduci un nume pentru document',
-  'documents.rename.form.name.max-length': 'Numele trebuie să aibă mai puțin de 255 de caractere',
-  'documents.rename.form.submit': 'Redenumește documentul',
   'documents.rename.success': 'Document redenumit cu succes',
-  'documents.rename.cancel': 'Anulează',
 
   'import-documents.title.error': '{{ count }} documente au eșuat',
   'import-documents.title.success': '{{ count }} documente importate',

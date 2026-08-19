@@ -524,14 +524,7 @@ export const translations: Partial<TranslationsDictionary> = {
   'documents.custom-properties.document-relation-manage': 'Gestionar documentos',
   'documents.custom-properties.no-results': 'Sin resultados',
 
-  'documents.rename.title': 'Renombrar documento',
-  'documents.rename.form.name.label': 'Nombre',
-  'documents.rename.form.name.placeholder': 'Ejemplo: Factura 2024',
-  'documents.rename.form.name.required': 'Por favor, ingresa un nombre para el documento',
-  'documents.rename.form.name.max-length': 'El nombre debe tener menos de 255 caracteres',
-  'documents.rename.form.submit': 'Renombrar documento',
   'documents.rename.success': 'Documento renombrado exitosamente',
-  'documents.rename.cancel': 'Cancelar',
 
   'import-documents.title.error': '{{ count }} documentos fallidos',
   'import-documents.title.success': '{{ count }} documentos importados',

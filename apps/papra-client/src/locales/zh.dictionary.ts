@@ -477,14 +477,7 @@ export const translations: Partial<TranslationsDictionary> = {
   'documents.custom-properties.document-relation-manage': '管理文档',
   'documents.custom-properties.no-results': '无结果',
 
-  'documents.rename.title': '重命名文档',
-  'documents.rename.form.name.label': '名称',
-  'documents.rename.form.name.placeholder': '示例：发票 2024',
-  'documents.rename.form.name.required': '请输入文档名称',
-  'documents.rename.form.name.max-length': '名称必须少于 255 个字符',
-  'documents.rename.form.submit': '重命名文档',
   'documents.rename.success': '文档重命名成功',
-  'documents.rename.cancel': '取消',
 
   'import-documents.title.error': '{{ count }} 个文档导入失败',
   'import-documents.title.success': '{{ count }} 个文档已导入',

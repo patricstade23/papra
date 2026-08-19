@@ -514,14 +514,7 @@ export const translations: Partial<TranslationsDictionary> = {
   'documents.custom-properties.document-relation-manage': 'Управление документами',
   'documents.custom-properties.no-results': 'Нет результатов',
 
-  'documents.rename.title': 'Переименовывание документа',
-  'documents.rename.form.name.label': 'Имя',
-  'documents.rename.form.name.placeholder': 'Пример: Счёт 2024',
-  'documents.rename.form.name.required': 'Введите имя документа',
-  'documents.rename.form.name.max-length': 'Имя должно быть короче 255 символов',
-  'documents.rename.form.submit': 'Переименовать документ',
   'documents.rename.success': 'Документ успешно переименован',
-  'documents.rename.cancel': 'Отмена',
 
   'import-documents.title.error':
     '{{ count }} {{ count, =1:документ, [2-4]:документа, документов }} не удалось импортировать',

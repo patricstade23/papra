@@ -534,14 +534,7 @@ export const translations: Partial<TranslationsDictionary> = {
   'documents.custom-properties.document-relation-manage': 'Dokumente verwalten',
   'documents.custom-properties.no-results': 'Keine Ergebnisse',
 
-  'documents.rename.title': 'Dokument umbenennen',
-  'documents.rename.form.name.label': 'Name',
-  'documents.rename.form.name.placeholder': 'Beispiel: Rechnung 2024',
-  'documents.rename.form.name.required': 'Bitte geben Sie einen Namen für das Dokument ein',
-  'documents.rename.form.name.max-length': 'Der Name muss weniger als 255 Zeichen lang sein',
-  'documents.rename.form.submit': 'Dokument umbenennen',
   'documents.rename.success': 'Dokument erfolgreich umbenannt',
-  'documents.rename.cancel': 'Abbrechen',
 
   'import-documents.title.error': '{{ count }} Dokumente fehlgeschlagen',
   'import-documents.title.success': '{{ count }} Dokumente importiert',
