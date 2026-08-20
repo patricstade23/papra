@@ -24,7 +24,7 @@ COPY . .
 RUN pnpm --filter "@papra/app-client..." run build && \
     pnpm --filter "@papra/app-server..." run build
 
-RUN pnpm deploy --filter=@papra/app-server --prod /prod/papra-server
+RUN pnpm deploy --filter=@papra/app-server --legacy --prod /prod/papra-server
 
 FROM base
 
