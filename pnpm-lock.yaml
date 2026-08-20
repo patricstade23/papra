@@ -480,13 +480,13 @@ importers:
         specifier: ^3.0.0
         version: 3.0.0
       '@tanstack/ai':
-        specifier: ^0.39.1
+        specifier: 0.39.1
         version: 0.39.1
       '@tanstack/ai-anthropic':
-        specifier: ^0.16.0
+        specifier: 0.16.0
         version: 0.16.0(@tanstack/ai@0.39.1)(zod@4.4.3)
       '@tanstack/ai-openai':
-        specifier: ^0.15.10
+        specifier: 0.15.10
         version: 0.15.10(@tanstack/ai@0.39.1)(ws@8.21.0)(zod@4.4.3)
       '@valibot/to-json-schema':
         specifier: ^1.6.0
