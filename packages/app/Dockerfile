@@ -9,6 +9,7 @@ WORKDIR /app
 
 COPY pnpm-lock.yaml ./
 COPY pnpm-workspace.yaml ./
+COPY .npmrc ./
 COPY apps/papra-client/package.json apps/papra-client/package.json
 COPY apps/papra-server/package.json apps/papra-server/package.json
 COPY packages/webhooks/package.json packages/webhooks/package.json
