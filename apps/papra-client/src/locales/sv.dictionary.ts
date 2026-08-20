@@ -1058,6 +1058,7 @@ export const translations: Partial<TranslationsDictionary> = {
   'api-errors.api.timeout': 'Begäran tog för lång tid och fick timeout. Försök igen.',
   'api-errors.document.already_exists': 'Dokumentet finns redan',
   'api-errors.document.size_too_large': 'Filstorleken är för stor',
+  'api-errors.document.storage_key_already_exists': 'En fil med detta namn finns redan. Välj ett annat namn.',
   'api-errors.intake-emails.already_exists': 'En inmatningsadress med denna e-post finns redan',
   'api-errors.intake_email.limit_reached':
     'Det maximala antalet e-postmeddelanden för den här organisationen har uppnåtts. Uppgradera din plan för att skapa fler e-postmeddelanden.',

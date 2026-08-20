@@ -51,6 +51,21 @@ export const inMemoryStorageDriverFactory = defineStorageDriver(() => {
 
     fileExists: async ({ storageKey }) => fileExists({ storageKey }),
 
+    moveFile: async ({ sourceKey, destinationKey }) => {
+      const entry = storage.get(sourceKey);
+
+      if (!entry) {
+        throw createFileNotFoundError();
+      }
+
+      if (fileExists({ storageKey: destinationKey })) {
+        throw createFileAlreadyExistsInStorageError();
+      }
+
+      storage.set(destinationKey, entry);
+      storage.delete(sourceKey);
+    },
+
     _getStorage: () => storage,
   };
 });

@@ -41,7 +41,8 @@
     "stripe:webhook": "stripe listen --forward-to localhost:1221/api/stripe/webhook",
     "script:make-user-admin": "tsx --env-file-if-exists=.env src/scripts/make-user-admin.script.ts",
     "maintenance:encrypt-all-documents": "tsx --env-file-if-exists=.env src/scripts/encrypt-all-documents.script.ts",
-    "maintenance:migrate-document-storage": "tsx --env-file-if-exists=.env src/scripts/migrate-document-storage.script.ts"
+    "maintenance:migrate-document-storage": "tsx --env-file-if-exists=.env src/scripts/migrate-document-storage.script.ts",
+    "maintenance:sync-document-names": "tsx --env-file-if-exists=.env src/scripts/sync-document-names.script.ts"
   },
   "dependencies": {
     "@azure/storage-blob": "^12.27.0",

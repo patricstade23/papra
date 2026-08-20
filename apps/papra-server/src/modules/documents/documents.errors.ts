@@ -30,3 +30,9 @@ export const createDocumentSizeTooLargeError = createErrorFactory({
   code: 'document.size_too_large',
   statusCode: 413,
 });
+
+export const createDocumentStorageKeyAlreadyExistsError = createErrorFactory({
+  message: 'A file with this name already exists in storage. Please choose a different name.',
+  code: 'document.storage_key_already_exists',
+  statusCode: 409,
+});

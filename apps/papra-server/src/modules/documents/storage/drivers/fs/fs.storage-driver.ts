@@ -6,6 +6,7 @@ import {
   checkFileExists,
   deleteFile,
   ensureDirectoryExists,
+  moveFile as moveFsFile,
 } from '../../../../shared/fs/fs.services';
 import {
   createFileAlreadyExistsInStorageError,
@@ -88,6 +89,18 @@ export const fsStorageDriverFactory = defineStorageDriver(({ documentStorageConf
       const exists = await checkFileExists({ path: storagePath });
 
       return exists;
+    },
+    moveFile: async ({ sourceKey, destinationKey }) => {
+      const { storagePath: sourceFilePath } = getStoragePath({ storageKey: sourceKey });
+      const { storagePath: destinationFilePath } = getStoragePath({ storageKey: destinationKey });
+
+      const destinationExists = await checkFileExists({ path: destinationFilePath });
+      if (destinationExists) {
+        throw createFileAlreadyExistsInStorageError();
+      }
+
+      await ensureDirectoryExists({ path: dirname(destinationFilePath) });
+      await moveFsFile({ sourceFilePath, destinationFilePath });
     },
   };
 });

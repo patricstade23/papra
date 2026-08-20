@@ -67,5 +67,8 @@ export const s3StorageDriverFactory = defineStorageDriver(({ documentStorageConf
       await client.deleteObject(storageKey);
     },
     fileExists,
+    moveFile: async ({ sourceKey, destinationKey }) => {
+      await client.moveObject(sourceKey, destinationKey);
+    },
   };
 });

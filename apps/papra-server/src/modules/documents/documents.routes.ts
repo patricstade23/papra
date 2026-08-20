@@ -486,7 +486,7 @@ function setupDeleteAllTrashDocumentsRoute({
   );
 }
 
-function setupUpdateDocumentRoute({ app, db, eventServices }: RouteDefinitionContext) {
+function setupUpdateDocumentRoute({ app, db, eventServices, documentsStorageService, config }: RouteDefinitionContext) {
   app.patch(
     '/api/organizations/:organizationId/documents/:documentId',
     requireAuthentication({ apiKeyPermissions: ['documents:update'] }),
@@ -514,6 +514,8 @@ function setupUpdateDocumentRoute({ app, db, eventServices }: RouteDefinitionCon
         userId,
         documentsRepository,
         eventServices,
+        documentsStorageService,
+        renameStoredFileOnDocumentRename: config.documentsStorage.pattern.renameStoredFileOnDocumentRename,
         changes: { content, documentDate, name, notes },
       });
 

@@ -997,6 +997,7 @@ export const translations: Partial<TranslationsDictionary> = {
   'api-errors.api.timeout': '请求耗时过长已超时。请重试。',
   'api-errors.document.already_exists': '文档已存在',
   'api-errors.document.size_too_large': '文件大小过大',
+  'api-errors.document.storage_key_already_exists': '已存在同名文件，请选择其他名称。',
   'api-errors.intake-emails.already_exists': '具有此地址的接收邮箱已存在。',
   'api-errors.intake_email.limit_reached':
     '该组织的接收邮箱数量已达到上限。请升级您的方案以创建更多接收邮箱。',

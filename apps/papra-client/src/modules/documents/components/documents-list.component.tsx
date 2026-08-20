@@ -15,10 +15,12 @@ import { useMutation } from '@tanstack/solid-query';
 import { createSignal, For, Match, Show, Switch } from 'solid-js';
 import { RelativeTime } from '@/modules/i18n/components/RelativeTime';
 import { useI18n } from '@/modules/i18n/i18n.provider';
+import { useI18nApiErrors } from '@/modules/shared/http/composables/i18n-api-errors';
 import { cn } from '@/modules/shared/style/cn';
 import { DocumentTagsList } from '@/modules/tags/components/tag-list.component';
 import { Button } from '@/modules/ui/components/button';
 import { Checkbox, CheckboxControl } from '@/modules/ui/components/checkbox';
+import { createToast } from '@/modules/ui/components/sonner';
 import {
   Select,
   SelectContent,
@@ -45,6 +47,7 @@ import { DocumentManagementDropdown } from './document-management-dropdown.compo
 
 const DocumentNameCell: Component<{ document: Document }> = (props) => {
   const { t } = useI18n();
+  const { getErrorMessage } = useI18nApiErrors();
   const [isEditing, setIsEditing] = createSignal(false);
   const [draftName, setDraftName] = createSignal('');
   let isCancelling = false;
@@ -58,6 +61,9 @@ const DocumentNameCell: Component<{ document: Document }> = (props) => {
       }),
     onSuccess: async () => {
       await invalidateOrganizationDocumentsQuery({ organizationId: props.document.organizationId });
+    },
+    onError: (error) => {
+      createToast({ message: getErrorMessage({ error }), type: 'error' });
     },
   }));
 

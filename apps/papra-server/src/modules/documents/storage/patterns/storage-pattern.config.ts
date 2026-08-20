@@ -28,4 +28,10 @@ export const storagePatternConfig = {
     default: '{{organization.id}}/{{document.name}}',
     env: 'DOCUMENT_STORAGE_KEY_PATTERN',
   },
+  renameStoredFileOnDocumentRename: {
+    doc: 'When enabled, moves the stored file to a new storage key matching the new document name whenever a document is renamed. Disabled by default.',
+    schema: booleanishSchema,
+    default: false,
+    env: 'DOCUMENT_RENAME_STORED_FILE_ON_RENAME',
+  },
 } as const satisfies AppConfigDefinition;

@@ -456,6 +456,7 @@ async function updateDocument({
   content,
   documentDate,
   notes,
+  originalStorageKey,
   db,
 }: {
   documentId: string;
@@ -464,11 +465,12 @@ async function updateDocument({
   content?: string;
   documentDate?: Date | null;
   notes?: string;
+  originalStorageKey?: string;
   db: Database;
 }) {
   const [document] = await db
     .update(documentsTable)
-    .set(omitUndefined({ name, content, documentDate, notes }))
+    .set(omitUndefined({ name, content, documentDate, notes, originalStorageKey }))
     .where(
       and(eq(documentsTable.id, documentId), eq(documentsTable.organizationId, organizationId)),
     )

@@ -1072,6 +1072,7 @@ export const translations: Partial<TranslationsDictionary> = {
   'api-errors.api.timeout': 'Het verzoek duurde te lang en is verlopen. Probeer het opnieuw.',
   'api-errors.document.already_exists': 'Het document bestaat al',
   'api-errors.document.size_too_large': 'Het bestand is te groot',
+  'api-errors.document.storage_key_already_exists': 'Er bestaat al een bestand met deze naam. Kies een andere naam.',
   'api-errors.intake-emails.already_exists': 'Er bestaat al een intake-e-mail met dit adres.',
   'api-errors.intake_email.limit_reached':
     'Het maximum aantal intake-e-mails voor deze organisatie is bereikt. Upgrade uw plan om meer intake-e-mails aan te maken.',

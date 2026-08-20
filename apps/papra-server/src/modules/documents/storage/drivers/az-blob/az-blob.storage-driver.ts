@@ -81,5 +81,27 @@ export const azBlobStorageDriverFactory = defineStorageDriver(({ documentStorage
 
       return true;
     },
+    moveFile: async ({ sourceKey, destinationKey }) => {
+      const sourceClient = getBlockBlobClient({ storageKey: sourceKey });
+      const destinationClient = getBlockBlobClient({ storageKey: destinationKey });
+
+      const [, copyError] = await safely(
+        destinationClient.syncCopyFromURL(sourceClient.url, {
+          conditions: { ifNoneMatch: '*' },
+        }),
+      );
+
+      if (copyError) {
+        throw isAzureBlobAlreadyExistsError({ error: copyError })
+          ? createFileAlreadyExistsInStorageError()
+          : copyError;
+      }
+
+      const [, deleteError] = await safely(sourceClient.delete());
+
+      if (deleteError && !isAzureBlobNotFoundError({ error: deleteError })) {
+        throw deleteError;
+      }
+    },
   };
 });

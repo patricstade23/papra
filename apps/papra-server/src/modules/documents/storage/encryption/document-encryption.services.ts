@@ -85,5 +85,6 @@ export function wrapWithEncryptionLayer({
         fileStream: fileStream.pipe(createDecryptTransformer({ key: encryptionKey })),
       };
     },
+    moveFile: storageDriver.moveFile.bind(storageDriver),
   };
 }

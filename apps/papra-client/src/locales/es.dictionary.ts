@@ -1078,6 +1078,7 @@ export const translations: Partial<TranslationsDictionary> = {
     'La solicitud tardó demasiado y se agotó el tiempo. Por favor, inténtalo de nuevo.',
   'api-errors.document.already_exists': 'El documento ya existe',
   'api-errors.document.size_too_large': 'El archivo es demasiado grande',
+  'api-errors.document.storage_key_already_exists': 'Ya existe un archivo con este nombre. Por favor, elija un nombre diferente.',
   'api-errors.intake-emails.already_exists': 'Ya existe un correo de ingreso con esta dirección.',
   'api-errors.intake_email.limit_reached':
     'Se ha alcanzado el número máximo de correos de ingreso para esta organización. Por favor, mejora tu plan para crear más correos de ingreso.',

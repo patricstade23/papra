@@ -20,6 +20,7 @@ import { fetchCustomPropertyDefinitions } from '@/modules/custom-properties/cust
 import { useShareDocumentDialog } from '@/modules/document-share-links/components/share-document-dialog.component';
 import { RelativeTime } from '@/modules/i18n/components/RelativeTime';
 import { useI18n } from '@/modules/i18n/i18n.provider';
+import { useI18nApiErrors } from '@/modules/shared/http/composables/i18n-api-errors';
 import { debounce } from '@/modules/shared/utils/timing';
 import { DocumentTagsList } from '@/modules/tags/components/tag-list.component';
 import { TagLink } from '@/modules/tags/components/tag.component';
@@ -283,6 +284,7 @@ const DocumentOpenWithDropdown: Component<{ document: Document; organizationId: 
 
 export const DocumentPage: Component = () => {
   const { t, formatRelativeTime } = useI18n();
+  const { getErrorMessage } = useI18nApiErrors();
   const params = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
   const { deleteDocument } = useDeleteDocument();
@@ -310,6 +312,9 @@ export const DocumentPage: Component = () => {
       void queryClient.invalidateQueries({
         queryKey: ['organizations', params.organizationId, 'documents', params.documentId],
       });
+    },
+    onError: (error) => {
+      createToast({ message: getErrorMessage({ error }), type: 'error' });
     },
   }));
 

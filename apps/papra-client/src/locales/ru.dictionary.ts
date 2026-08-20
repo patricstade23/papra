@@ -1072,6 +1072,7 @@ export const translations: Partial<TranslationsDictionary> = {
     'Запрос занял слишком много времени и завершился таймаутом. Пожалуйста, попробуйте снова.',
   'api-errors.document.already_exists': 'Документ уже существует',
   'api-errors.document.size_too_large': 'Размер файла слишком большой',
+  'api-errors.document.storage_key_already_exists': 'Файл с таким именем уже существует. Пожалуйста, выберите другое имя.',
   'api-errors.intake-emails.already_exists': 'Адрес для импорта с этим адресом уже существует.',
   'api-errors.intake_email.limit_reached':
     'Достигнуто максимальное количество адресов для импорта в этой организации. Пожалуйста, обновите ваш план, чтобы создать больше адресов для импорта.',

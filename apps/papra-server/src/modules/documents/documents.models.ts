@@ -1,5 +1,6 @@
 import type { PartialBy } from '@corentinth/chisels';
 import type { DbSelectableDocument } from './documents.types';
+import { extname, posix } from 'node:path';
 import filenamify from 'filenamify';
 import { getExtension } from '../shared/files/file-names';
 import { omit } from '../shared/objects';
@@ -64,4 +65,30 @@ export function formatDocumentsForApi<T extends PartialBy<DbSelectableDocument, 
 
 export function ensureSafeFileName(fileName: string) {
   return filenamify(fileName, { replacement: '_' });
+}
+
+export function deriveRenamedStorageKey({
+  oldStorageKey,
+  newDocumentName,
+}: {
+  oldStorageKey: string;
+  newDocumentName: string;
+}): string {
+  const directory = posix.dirname(oldStorageKey);
+  const oldExt = extname(posix.basename(oldStorageKey));
+
+  // Strip the extension from the new document name (the UI sends it with extension)
+  const nameWithoutExt = oldExt !== '' && newDocumentName.endsWith(oldExt)
+    ? newDocumentName.slice(0, -oldExt.length)
+    : posix.basename(newDocumentName, extname(newDocumentName));
+
+  const sanitized = ensureSafeFileName(nameWithoutExt).trim();
+
+  if (!sanitized) {
+    throw new Error(`Cannot derive storage key: "${newDocumentName}" produces an empty filename after sanitization`);
+  }
+
+  const newBasename = `${sanitized}${oldExt}`;
+
+  return directory === '.' ? newBasename : `${directory}/${newBasename}`;
 }

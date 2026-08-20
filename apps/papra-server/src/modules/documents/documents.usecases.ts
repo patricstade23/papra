@@ -27,7 +27,7 @@ import { getOrganizationStorageLimits } from '../organizations/organizations.use
 import { createPlanEntitlementsRepository } from '../plan-entitlements/plan-entitlements.repository';
 import { createPlanEntitlementDefinitionRegistry } from '../plan-entitlements/plan-entitlements.registry';
 import { createPlansRepository } from '../plans/plans.repository';
-import { createError } from '../shared/errors/errors';
+import { createError, isErrorWithCode } from '../shared/errors/errors';
 import { createLogger } from '../shared/logger/logger';
 import { createByteCounter } from '../shared/streams/byte-counter';
 import { createSha256HashTransformer } from '../shared/streams/stream-hash';
@@ -42,8 +42,10 @@ import {
   createDocumentNotDeletedError,
   createDocumentNotFoundError,
   createDocumentSizeTooLargeError,
+  createDocumentStorageKeyAlreadyExistsError,
 } from './documents.errors';
 import {
+  deriveRenamedStorageKey,
   formatDocumentForApi,
   generateDocumentId as generateDocumentIdImpl,
 } from './documents.models';
@@ -108,7 +110,7 @@ export async function createDocument({
   });
 
   const documentId = generateDocumentId();
-  const { storageKey } = await createStorageKey({
+  const { storageKey, effectiveDocumentName } = await createStorageKey({
     documentId,
     documentName: fileName,
     organizationId,
@@ -174,6 +176,7 @@ export async function createDocument({
     : await createNewDocument({
         newFileStorageContext: { storageKey, ...encryptionMetadata },
         fileName,
+        effectiveName: effectiveDocumentName,
         size,
         mimeType,
         hash,
@@ -276,10 +279,9 @@ async function handleExistingDocument({
   newDocumentStorageKey: string;
   logger: Logger;
 }) {
-  // Delete the newly uploaded file since we'll be using the existing document's file
-  await documentsStorageService.deleteFile({ storageKey: newDocumentStorageKey });
-
   if (!existingDocument.isDeleted) {
+    // Active document: discard the new upload and reject
+    await documentsStorageService.deleteFile({ storageKey: newDocumentStorageKey });
     throw createDocumentAlreadyExistsError();
   }
 
@@ -287,6 +289,39 @@ async function handleExistingDocument({
     { documentId: existingDocument.id },
     'Document already exists, restoring for deduplication',
   );
+
+  // Reconcile the newly uploaded file with the existing document's storage location.
+  //
+  // Three possible situations:
+  //   A) Same key: the old file was already gone and the new upload landed at the
+  //      same path — the file is already where it should be, nothing to do.
+  //   B) Different keys, old file EXISTS: standard deduplication — discard the
+  //      new file and keep the old one.
+  //   C) Different keys, old file MISSING: the old file was cleaned up (stale key
+  //      scenario). Move the new file to the old key so the restored document
+  //      remains accessible.
+  //
+  // We detect B vs C by attempting a move; if the destination is occupied the
+  // driver throws file_already_exists (→ case B), otherwise the move succeeds
+  // (→ case C).
+  if (newDocumentStorageKey !== existingDocument.originalStorageKey) {
+    const [, moveError] = await safely(
+      documentsStorageService.moveFile({
+        sourceKey: newDocumentStorageKey,
+        destinationKey: existingDocument.originalStorageKey,
+      }),
+    );
+
+    if (moveError) {
+      if (!isErrorWithCode({ error: moveError, code: 'documents.storage.file_already_exists' })) {
+        throw moveError;
+      }
+      // Case B: old file is present — discard the new upload
+      await documentsStorageService.deleteFile({ storageKey: newDocumentStorageKey });
+    }
+    // Case C (no error): new file has been moved to the existing document's key ✓
+  }
+  // Case A: new file is already at existingDocument.originalStorageKey ✓
 
   const [, { document: restoredDocument }] = await Promise.all([
     tagsRepository.removeAllTagsFromDocument({ documentId: existingDocument.id }),
@@ -310,6 +345,7 @@ async function handleExistingDocument({
 
 async function createNewDocument({
   fileName,
+  effectiveName,
   size,
   mimeType,
   hash,
@@ -329,6 +365,7 @@ async function createNewDocument({
   logger,
 }: {
   fileName: string;
+  effectiveName: string;
   size: number;
   mimeType: string;
   hash: string;
@@ -372,7 +409,7 @@ async function createNewDocument({
   const [result, error] = await safely(
     documentsRepository.saveOrganizationDocument({
       id: documentId,
-      name: fileName,
+      name: effectiveName,
       organizationId,
       originalName: fileName,
       createdBy: userId,
@@ -452,10 +489,17 @@ export async function hardDeleteDocument({
   documentsStorageService: DocumentStorageService;
   eventServices: EventServices;
 }) {
-  await Promise.all([
-    documentsRepository.hardDeleteDocument({ documentId: document.id }),
+  const [, fileDeleteError] = await safely(
     documentsStorageService.deleteFile({ storageKey: document.originalStorageKey }),
-  ]);
+  );
+
+  // Silently ignore "file not found" — the file may have been cleaned up already
+  // (e.g. due to a failed rename rollback leaving the DB with a stale storage key).
+  if (fileDeleteError && !isErrorWithCode({ error: fileDeleteError, code: 'documents.storage.file_not_found' })) {
+    throw fileDeleteError;
+  }
+
+  await documentsRepository.hardDeleteDocument({ documentId: document.id });
 
   eventServices.emitEvent({
     eventName: 'document.deleted',
@@ -768,26 +812,112 @@ export async function updateDocument({
   userId,
   documentsRepository,
   eventServices,
+  documentsStorageService,
+  renameStoredFileOnDocumentRename = false,
   changes,
+  logger = createLogger({ namespace: 'documents:updateDocument' }),
 }: {
   documentId: string;
   organizationId: string;
   userId?: string;
   documentsRepository: DocumentsRepository;
   eventServices: EventServices;
+  documentsStorageService?: DocumentStorageService;
+  renameStoredFileOnDocumentRename?: boolean;
   changes: {
     name?: string;
     content?: string;
     documentDate?: Date | null;
     notes?: string;
   };
+  logger?: Logger;
 }) {
-  // It throws if the document does not exist
-  const { document } = await documentsRepository.updateDocument({
-    documentId,
-    organizationId,
-    ...changes,
-  });
+  let newStorageKey: string | undefined;
+
+  if (changes.name !== undefined && renameStoredFileOnDocumentRename && documentsStorageService) {
+    const { document: currentDocument } = await documentsRepository.getDocumentById({
+      documentId,
+      organizationId,
+    });
+
+    if (currentDocument && changes.name !== currentDocument.name) {
+      const candidateKey = deriveRenamedStorageKey({
+        oldStorageKey: currentDocument.originalStorageKey,
+        newDocumentName: changes.name,
+      });
+
+      const keyExists = await documentsStorageService.fileExists({ storageKey: candidateKey });
+      if (keyExists) {
+        throw createDocumentStorageKeyAlreadyExistsError();
+      }
+      newStorageKey = candidateKey;
+
+      const [, moveError] = await safely(
+        documentsStorageService.moveFile({
+          sourceKey: currentDocument.originalStorageKey,
+          destinationKey: newStorageKey,
+        }),
+      );
+
+      if (moveError) {
+        if (isErrorWithCode({ error: moveError, code: 'documents.storage.file_already_exists' })) {
+          throw createDocumentStorageKeyAlreadyExistsError();
+        }
+        throw moveError;
+      }
+    }
+  }
+
+  let document;
+
+  try {
+    ({ document } = await documentsRepository.updateDocument({
+      documentId,
+      organizationId,
+      originalStorageKey: newStorageKey,
+      ...changes,
+    }));
+  } catch (error) {
+    if (newStorageKey && documentsStorageService) {
+      const { document: currentDocument } = await documentsRepository.getDocumentById({
+        documentId,
+        organizationId,
+      });
+
+      const [, rollbackError] = await safely(
+        documentsStorageService.moveFile({
+          sourceKey: newStorageKey,
+          destinationKey: currentDocument?.originalStorageKey ?? newStorageKey,
+        }),
+      );
+
+      if (rollbackError) {
+        logger.warn(
+          { rollbackError, newKey: newStorageKey, originalKey: currentDocument?.originalStorageKey },
+          '[documents] File move rollback failed. Updating DB storage key to maintain consistency.',
+        );
+
+        // File is stuck at newStorageKey. Update the DB to point there so the
+        // document remains accessible and can be properly deleted later.
+        const [, keyUpdateError] = await safely(
+          documentsRepository.updateDocument({
+            documentId,
+            organizationId,
+            originalStorageKey: newStorageKey,
+          }),
+        );
+
+        if (keyUpdateError) {
+          logger.error(
+            { keyUpdateError, newKey: newStorageKey, originalKey: currentDocument?.originalStorageKey },
+            '[documents] Failed to update originalStorageKey after rollback failure. File may be orphaned. Manual recovery needed.',
+          );
+        }
+      }
+    }
+
+    throw error;
+  }
 
   eventServices.emitEvent({
     eventName: 'document.updated',

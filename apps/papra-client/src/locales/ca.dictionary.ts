@@ -1114,6 +1114,7 @@ export const translations = {
   'api-errors.api.timeout': 'La sol·licitud ha trigat massa i ha expirat. Torna-ho a provar.',
   'api-errors.document.already_exists': 'El document ja existeix',
   'api-errors.document.size_too_large': 'La mida del fitxer és massa gran',
+  'api-errors.document.storage_key_already_exists': 'Ja existeix un fitxer amb aquest nom. Trieu un nom diferent.',
   'api-errors.intake-emails.already_exists':
     "Ja existeix un correu electrònic d'entrada amb aquesta adreça.",
   'api-errors.intake_email.limit_reached':

@@ -376,6 +376,85 @@ describe('documents usecases', () => {
       ]);
     });
 
+    test('when re-importing a file whose deleted duplicate has a missing (stale) storage file, the new file must be kept and remain accessible', async () => {
+      const taskServices = createInMemoryTaskServices();
+      const { db } = await createInMemoryDatabase({
+        users: [{ id: 'user-1', email: 'user-1@example.com' }],
+        organizations: [{ id: 'organization-1', name: 'Organization 1' }],
+        organizationMembers: [
+          { organizationId: 'organization-1', userId: 'user-1', role: ORGANIZATION_ROLES.OWNER },
+        ],
+      });
+
+      const config = overrideConfig({
+        organizationPlans: { isFreePlanUnlimited: true },
+        documentsStorage: { driver: 'in-memory' },
+      });
+
+      const documentsRepository = createDocumentsRepository({ db });
+      const inMemoryDocumentsStorageService = createInMemoryDocumentStorageServices();
+
+      const createDocument = createDocumentCreationUsecase({
+        db,
+        config,
+        generateDocumentId: createDeterministicIdGenerator({ prefix: 'doc' }),
+        documentsStorageService: inMemoryDocumentsStorageService,
+        documentsRepository,
+        taskServices,
+        eventServices: createTestEventServices(),
+      });
+
+      const userId = 'user-1';
+      const organizationId = 'organization-1';
+
+      // Step 1: Upload a file
+      const { document: document1 } = await createDocument({
+        fileStream: createReadableStream({ content: 'Hello, world!' }),
+        fileName: 'file.pdf',
+        mimeType: 'application/pdf',
+        userId,
+        organizationId,
+      });
+
+      const originalKey = document1.originalStorageKey;
+      expect(originalKey).to.eql('organization-1/originals/doc_000000000000000000000001.pdf');
+
+      // Step 2: Soft-delete the document
+      await trashDocument({
+        documentId: document1.id,
+        organizationId,
+        userId,
+        documentsRepository,
+        eventServices: createTestEventServices(),
+      });
+
+      // Step 3: Simulate a stale-key scenario — the file has been deleted from storage
+      // (e.g. a failed hard-delete left the DB record intact but the file is gone)
+      await inMemoryDocumentsStorageService.deleteFile({ storageKey: originalKey });
+
+      expect(Array.from(inMemoryDocumentsStorageService._getStorage().keys())).to.eql([]);
+
+      // Step 4: Re-import the same file
+      const { document: restoredDocument } = await createDocument({
+        fileStream: createReadableStream({ content: 'Hello, world!' }),
+        fileName: 'file.pdf',
+        mimeType: 'application/pdf',
+        userId,
+        organizationId,
+      });
+
+      // The trashed document should be restored (same ID)
+      expect(restoredDocument.id).to.eql(document1.id);
+      expect(restoredDocument.isDeleted).to.eql(false);
+
+      // The file must be accessible at the restored document's storage key
+      const { fileStream } = await inMemoryDocumentsStorageService.getFileStream({
+        storageKey: restoredDocument.originalStorageKey,
+      });
+      const content = await collectReadableStreamToString({ stream: fileStream });
+      expect(content).to.eql('Hello, world!');
+    });
+
     test('when there is an issue when inserting the document in the db, the file should not be saved in the storage', async () => {
       const taskServices = createInMemoryTaskServices();
       const { db } = await createInMemoryDatabase({

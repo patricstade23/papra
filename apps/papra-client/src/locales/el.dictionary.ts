@@ -1075,6 +1075,7 @@ export const translations: Partial<TranslationsDictionary> = {
   'api-errors.api.timeout': 'Το αίτημα άργησε και έληξε. Δοκιμάστε ξανά.',
   'api-errors.document.already_exists': 'Το έγγραφο υπάρχει ήδη',
   'api-errors.document.size_too_large': 'Το μέγεθος αρχείου είναι πολύ μεγάλο',
+  'api-errors.document.storage_key_already_exists': 'Υπάρχει ήδη αρχείο με αυτό το όνομα. Παρακαλώ επιλέξτε διαφορετικό όνομα.',
   'api-errors.intake-emails.already_exists': 'Υπάρχει ήδη email εισαγωγής με αυτή τη διεύθυνση.',
   'api-errors.intake_email.limit_reached':
     'Φτάσατε το μέγιστο αριθμό email εισαγωγής. Αναβαθμίστε το πλάνο σας.',

@@ -1082,6 +1082,7 @@ export const translations: Partial<TranslationsDictionary> = {
     'Cererea a durat prea mult și a expirat. Vă rugăm să încercați din nou.',
   'api-errors.document.already_exists': 'Documentul există deja',
   'api-errors.document.size_too_large': 'Fișierul este prea mare',
+  'api-errors.document.storage_key_already_exists': 'Există deja un fișier cu acest nume. Vă rugăm să alegeți un alt nume.',
   'api-errors.intake-emails.already_exists': 'Un email de primire cu această adresă există deja.',
   'api-errors.intake_email.limit_reached':
     'Numărul maxim de email-uri de primire pentru această organizație a fost atins. Te rugăm să-ți îmbunătățești planul pentru a crea mai multe email-uri de primire.',

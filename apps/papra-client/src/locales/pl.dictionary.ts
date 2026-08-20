@@ -1062,6 +1062,7 @@ export const translations: Partial<TranslationsDictionary> = {
     'Żądanie trwało zbyt długo i przekroczyło limit czasu. Spróbuj ponownie.',
   'api-errors.document.already_exists': 'Dokument już istnieje',
   'api-errors.document.size_too_large': 'Plik jest zbyt duży',
+  'api-errors.document.storage_key_already_exists': 'Plik o tej nazwie już istnieje. Proszę wybrać inną nazwę.',
   'api-errors.intake-emails.already_exists': 'Adres e-mail do przyjęć z tym adresem już istnieje.',
   'api-errors.intake_email.limit_reached':
     'Osiągnięto maksymalną liczbę adresów e-mail do przyjęć dla tej organizacji. Aby utworzyć więcej adresów e-mail do przyjęć, zaktualizuj swój plan.',

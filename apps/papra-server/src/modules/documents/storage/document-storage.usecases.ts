@@ -3,7 +3,7 @@ import type { DocumentStorageService } from './documents.storage.services';
 import type { StoragePatternConfig } from './patterns/storage-pattern.types';
 import { createLogger } from '../../shared/logger/logger';
 import { generateRandomString } from '../../shared/random/random.services';
-import { buildOriginalDocumentKey } from '../documents.models';
+import { buildOriginalDocumentKey, deriveRenamedStorageKey } from '../documents.models';
 import { createUnableToFindAvailableStorageKeyError } from './document-storage.errors';
 import { addSuffixToFileName } from './document-storage.models';
 import { buildStorageKey } from './patterns/storage-pattern.usecases';
@@ -89,6 +89,7 @@ export async function createStorageKey({
     storageKeyPattern,
     enableRandomSuffixFallback,
     maxIncrementalSuffixAttempts,
+    renameStoredFileOnDocumentRename,
   } = storagePatternConfig;
 
   if (useLegacyStorageKeyDefinitionSystem) {
@@ -98,7 +99,27 @@ export async function createStorageKey({
       organizationId,
     });
 
-    return { storageKey: originalDocumentStorageKey };
+    if (!renameStoredFileOnDocumentRename) {
+      return { storageKey: originalDocumentStorageKey, effectiveDocumentName: documentName };
+    }
+
+    // When renaming is enabled, store with a name-based key from the start
+    const initialStorageKey = deriveRenamedStorageKey({
+      oldStorageKey: originalDocumentStorageKey,
+      newDocumentName: documentName,
+    });
+
+    const { storageKey } = await ensureStorageKeyIsAvailable({
+      initialStorageKey,
+      maxIncrementalSuffixAttempts,
+      enableRandomSuffixFallback,
+      documentsStorageService,
+      logger,
+    });
+
+    const effectiveDocumentName = storageKey.slice(storageKey.lastIndexOf('/') + 1);
+
+    return { storageKey, effectiveDocumentName };
   }
 
   const { storageKey: initialStorageKey } = buildStorageKey({
@@ -117,5 +138,7 @@ export async function createStorageKey({
     logger,
   });
 
-  return { storageKey };
+  const effectiveDocumentName = storageKey.slice(storageKey.lastIndexOf('/') + 1);
+
+  return { storageKey, effectiveDocumentName };
 }
