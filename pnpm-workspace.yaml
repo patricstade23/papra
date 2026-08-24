@@ -25,8 +25,10 @@ catalog:
   figue: ^3.3.0
   '@paralleldrive/cuid2': ^3.3.0
 
-nodeLinker: hoisted
 verifyDepsBeforeRun: false # pnpm deploy in prod mode strips dev deps, so we don't want to verify them before run
+injectWorkspacePackages: true
+syncInjectedDepsAfterScripts:
+  - build
 
 allowBuilds:
   canvas: true
