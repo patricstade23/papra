@@ -19,16 +19,18 @@ export async function createTag({
   name,
   color,
   description,
+  prependNameToFile,
 }: {
   organizationId: string;
   name: string;
   color: string;
   description: string;
+  prependNameToFile?: boolean;
 }) {
   const { tag } = await apiClient<{ tag: AsDto<Tag> }>({
     path: `/api/organizations/${organizationId}/tags`,
     method: 'POST',
-    body: { name, color, description },
+    body: { name, color, description, prependNameToFile },
   });
 
   return {
@@ -42,17 +44,19 @@ export async function updateTag({
   name,
   color,
   description,
+  prependNameToFile,
 }: {
   organizationId: string;
   tagId: string;
   name: string;
   color: string;
   description: string;
+  prependNameToFile?: boolean;
 }) {
   const { tag } = await apiClient<{ tag: AsDto<Tag> }>({
     path: `/api/organizations/${organizationId}/tags/${tagId}`,
     method: 'PUT',
-    body: { name, color, description },
+    body: { name, color, description, prependNameToFile },
   });
 
   return {

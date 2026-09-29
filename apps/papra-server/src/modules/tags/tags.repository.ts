@@ -25,6 +25,7 @@ export function createTagsRepository({ db }: { db: Database }) {
       getTagById,
       getTagsByIds,
       getTagsByDocumentIds,
+      getFlaggedTagNames,
       createTag,
       deleteTag,
       updateTag,
@@ -107,6 +108,21 @@ async function getTagsByDocumentIds({
   return { tagsByDocumentId };
 }
 
+async function getFlaggedTagNames({
+  organizationId,
+  db,
+}: {
+  organizationId: string;
+  db: Database;
+}): Promise<{ flaggedTagNames: string[] }> {
+  const rows = await db
+    .select({ name: tagsTable.name })
+    .from(tagsTable)
+    .where(and(eq(tagsTable.organizationId, organizationId), eq(tagsTable.prependNameToFile, true)));
+
+  return { flaggedTagNames: rows.map((row) => row.name) };
+}
+
 async function getTagById({
   tagId,
   organizationId,
@@ -149,7 +165,13 @@ async function createTag({
   tag,
   db,
 }: {
-  tag: { name: string; description?: string | null; color: string; organizationId: string };
+  tag: {
+    name: string;
+    description?: string | null;
+    color: string;
+    organizationId: string;
+    prependNameToFile?: boolean;
+  };
   db: Database;
 }) {
   const [result, error] = await safely(
@@ -200,6 +222,7 @@ async function updateTag({
   name,
   description,
   color,
+  prependNameToFile,
   db,
 }: {
   tagId: string;
@@ -207,6 +230,7 @@ async function updateTag({
   name?: string;
   description?: string;
   color?: string;
+  prependNameToFile?: boolean;
   db: Database;
 }) {
   const [result, error] = await safely(
@@ -217,6 +241,7 @@ async function updateTag({
           name,
           description,
           color,
+          prependNameToFile,
           normalizedName: isDefined(name) ? normalizeTagName({ name }) : undefined,
         }),
       )

@@ -30,6 +30,8 @@ import { aiCreditsMigration } from './list/0027-ai-credits.migration';
 import { pendingOrganizationInvitationsUniqueMigration } from './list/0028-pending-organization-invitations-unique.migration';
 import { documentViewsShowOnHomePageMigration } from './list/0029-document-views-show-on-home-page.migration';
 
+import { tagsPrependNameToFileMigration } from './list/0030-tags-prepend-name-to-file.migration';
+
 export const migrations: Migration[] = [
   initialSchemaSetupMigration,
   documentsFtsMigration,
@@ -60,4 +62,5 @@ export const migrations: Migration[] = [
   aiCreditsMigration,
   pendingOrganizationInvitationsUniqueMigration,
   documentViewsShowOnHomePageMigration,
+  tagsPrependNameToFileMigration
 ];

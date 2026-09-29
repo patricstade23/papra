@@ -32,6 +32,7 @@ import {
 } from '@/modules/ui/components/dialog';
 import { EmptyState } from '@/modules/ui/components/empty';
 import { createToast } from '@/modules/ui/components/sonner';
+import { Switch, SwitchControl, SwitchLabel, SwitchThumb } from '@/modules/ui/components/switch';
 import {
   Table,
   TableBody,
@@ -77,8 +78,8 @@ const TagColorPicker: Component<{
 };
 
 const TagForm: Component<{
-  onSubmit: (values: { name: string; color: string; description: string }) => unknown;
-  initialValues?: { name?: string; color?: string; description?: string | null };
+  onSubmit: (values: { name: string; color: string; description: string; prependNameToFile?: boolean }) => unknown;
+  initialValues?: { name?: string; color?: string; description?: string | null; prependNameToFile?: boolean | null };
   submitButton: JSX.Element;
 }> = (props) => {
   const { t } = useI18n();
@@ -102,10 +103,12 @@ const TagForm: Component<{
         v.trim(),
         v.maxLength(256, t('tags.form.description.max-length')),
       ),
+      prependNameToFile: v.optional(v.boolean(), false),
     }),
     initialValues: {
       ...props.initialValues,
       description: props.initialValues?.description ?? undefined,
+      prependNameToFile: props.initialValues?.prependNameToFile ?? false,
     },
   });
 
@@ -166,6 +169,22 @@ const TagForm: Component<{
         )}
       </Field>
 
+      <Field name="prependNameToFile" type="boolean">
+        {(field) => (
+          <Switch
+            class="flex items-center justify-between gap-4 mb-4"
+            checked={field.value ?? false}
+            onChange={(checked) => setValue(form, 'prependNameToFile', checked)}
+          >
+            <div>
+              <SwitchLabel class="text-sm font-medium">{t('tags.form.prepend-name-to-file.label')}</SwitchLabel>
+              <div class="text-xs text-muted-foreground">{t('tags.form.prepend-name-to-file.description')}</div>
+            </div>
+            <SwitchControl><SwitchThumb /></SwitchControl>
+          </Switch>
+        )}
+      </Field>
+
       <div class="flex flex-row-reverse justify-between items-center mt-6">
         {props.submitButton}
 
@@ -197,11 +216,12 @@ export const CreateTagModal: Component<{
   };
 
   const createTagMutation = useMutation(() => ({
-    mutationFn: async (data: { name: string; color: string; description: string }) =>
+    mutationFn: async (data: { name: string; color: string; description: string; prependNameToFile?: boolean }) =>
       createTag({
         name: data.name,
         color: data.color.toLowerCase(),
         description: data.description,
+        prependNameToFile: data.prependNameToFile,
         organizationId: props.organizationId,
       }),
     onSuccess: async ({ tag }, variables) => {
@@ -262,11 +282,12 @@ const UpdateTagModal: Component<{
   const { getErrorMessage } = useI18nApiErrors({ t });
 
   const updateTagMutation = useMutation(() => ({
-    mutationFn: async (data: { name: string; color: string; description: string }) =>
+    mutationFn: async (data: { name: string; color: string; description: string; prependNameToFile?: boolean }) =>
       updateTag({
         name: data.name,
         color: data.color.toLowerCase(),
         description: data.description,
+        prependNameToFile: data.prependNameToFile,
         organizationId: props.organizationId,
         tagId: props.tag.id,
       }),

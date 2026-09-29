@@ -13,3 +13,5 @@ export const tagColorSchema = v.pipe(
 );
 
 export const tagDescriptionSchema = v.pipe(v.string(), v.trim(), v.maxLength(256));
+
+export const tagPrependNameToFileSchema = v.boolean();

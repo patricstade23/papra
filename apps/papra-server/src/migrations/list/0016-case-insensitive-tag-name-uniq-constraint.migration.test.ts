@@ -140,7 +140,18 @@ describe('0016-case-insensitive-tag-name-uniq-constraint migration', () => {
 
       await caseInsensitiveTagNameUniqConstraintMigration.up({ db });
 
-      const tags = await db.select().from(tagsTable).orderBy(tagsTable.id);
+      // Explicit projection: this test builds only the schema up to migration 0016, so selecting
+      // the full live `tagsTable` (which includes columns added by later migrations) would fail.
+      const tags = await db
+        .select({
+          id: tagsTable.id,
+          organizationId: tagsTable.organizationId,
+          name: tagsTable.name,
+          normalizedName: tagsTable.normalizedName,
+          description: tagsTable.description,
+        })
+        .from(tagsTable)
+        .orderBy(tagsTable.id);
 
       expect(tags).toHaveLength(6);
 
@@ -215,7 +226,15 @@ describe('0016-case-insensitive-tag-name-uniq-constraint migration', () => {
         VALUES ('tag_3', 1737936000000, 1737936000000, 'org_2', 'TEST', 'test', '#0000ff')
       `);
 
-      const tags = await db.select().from(tagsTable).orderBy(tagsTable.id);
+      const tags = await db
+        .select({
+          id: tagsTable.id,
+          organizationId: tagsTable.organizationId,
+          name: tagsTable.name,
+          normalizedName: tagsTable.normalizedName,
+        })
+        .from(tagsTable)
+        .orderBy(tagsTable.id);
       expect(tags).toHaveLength(2);
 
       expect(tags.at(0)).toMatchObject({ id: 'tag_1', name: 'Test', normalizedName: 'test' });
@@ -238,13 +257,17 @@ describe('0016-case-insensitive-tag-name-uniq-constraint migration', () => {
 
       await caseInsensitiveTagNameUniqConstraintMigration.up({ db });
 
-      const tagsAfterFirst = await db.select().from(tagsTable);
+      const tagsAfterFirst = await db
+        .select({ id: tagsTable.id, normalizedName: tagsTable.normalizedName })
+        .from(tagsTable);
       expect(tagsAfterFirst).toHaveLength(1);
       expect(tagsAfterFirst[0]?.normalizedName).to.eql('test');
 
       await caseInsensitiveTagNameUniqConstraintMigration.up({ db });
 
-      const tagsAfterSecond = await db.select().from(tagsTable);
+      const tagsAfterSecond = await db
+        .select({ id: tagsTable.id, normalizedName: tagsTable.normalizedName })
+        .from(tagsTable);
       expect(tagsAfterSecond).toHaveLength(1);
       expect(tagsAfterSecond[0]?.normalizedName).to.eql('test');
     });
@@ -268,7 +291,19 @@ describe('0016-case-insensitive-tag-name-uniq-constraint migration', () => {
 
       await caseInsensitiveTagNameUniqConstraintMigration.up({ db });
 
-      const tags = await db.select().from(tagsTable).orderBy(tagsTable.id);
+      const tags = await db
+        .select({
+          id: tagsTable.id,
+          createdAt: tagsTable.createdAt,
+          updatedAt: tagsTable.updatedAt,
+          organizationId: tagsTable.organizationId,
+          name: tagsTable.name,
+          normalizedName: tagsTable.normalizedName,
+          color: tagsTable.color,
+          description: tagsTable.description,
+        })
+        .from(tagsTable)
+        .orderBy(tagsTable.id);
 
       expect(tags.map(({ updatedAt: _, ...tag }) => tag)).to.eql([
         {
@@ -357,7 +392,10 @@ describe('0016-case-insensitive-tag-name-uniq-constraint migration', () => {
         `),
       ]);
 
-      const tags = await db.select().from(tagsTable).orderBy(tagsTable.id);
+      const tags = await db
+        .select({ id: tagsTable.id, name: tagsTable.name, normalizedName: tagsTable.normalizedName })
+        .from(tagsTable)
+        .orderBy(tagsTable.id);
 
       expect(tags).toHaveLength(2);
       expect(tags.at(0)).toMatchObject({ id: 'tag_1', name: 'Tag One', normalizedName: null });
@@ -389,7 +427,10 @@ describe('0016-case-insensitive-tag-name-uniq-constraint migration', () => {
 
       await caseInsensitiveTagNameUniqConstraintMigration.up({ db });
 
-      const tagsAfterMigration = await db.select().from(tagsTable).orderBy(tagsTable.id);
+      const tagsAfterMigration = await db
+        .select({ id: tagsTable.id, normalizedName: tagsTable.normalizedName })
+        .from(tagsTable)
+        .orderBy(tagsTable.id);
       expect(tagsAfterMigration).toHaveLength(500);
 
       expect(tagsAfterMigration.every((tag) => !isNil(tag.normalizedName))).toBe(true);

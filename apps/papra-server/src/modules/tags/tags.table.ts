@@ -1,4 +1,4 @@
-import { primaryKey, sqliteTable, text } from 'drizzle-orm/sqlite-core';
+import { integer, primaryKey, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 import { documentsTable } from '../documents/documents.table';
 import { organizationsTable } from '../organizations/organizations.table';
 import { createPrimaryKeyField, createTimestampColumns } from '../shared/db/columns.helpers';
@@ -15,6 +15,7 @@ export const tagsTable = sqliteTable('tags', {
   normalizedName: text('normalized_name'),
   color: text('color').notNull(),
   description: text('description'),
+  prependNameToFile: integer('prepend_name_to_file', { mode: 'boolean' }).notNull().default(false),
 });
 
 export const documentsTagsTable = sqliteTable(

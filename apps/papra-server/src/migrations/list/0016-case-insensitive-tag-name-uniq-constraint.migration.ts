@@ -64,9 +64,17 @@ export const caseInsensitiveTagNameUniqConstraintMigration = {
 
       const iterator = createBatchedIterator({
         batchSize: 200,
+        // Explicit column projection (not `select()`): a historical migration must only reference
+        // columns that exist at this point in the schema history. Using the live `tagsTable` schema
+        // object with `select()` would emit SQL for columns added by *later* migrations (e.g.
+        // `prepend_name_to_file`), which do not exist yet when this migration runs.
         getBatch: async ({ limit }) =>
           db
-            .select()
+            .select({
+              id: tagsTable.id,
+              name: tagsTable.name,
+              organizationId: tagsTable.organizationId,
+            })
             .from(tagsTable)
             .where(isNull(tagsTable.normalizedName))
             .orderBy(asc(tagsTable.id))
