@@ -113,6 +113,7 @@ export async function seedDemoStorage() {
     name: tag.name,
     color: tag.color,
     description: tag.description,
+    prependNameToFile: false,
     createdAt: lastMonth,
     updatedAt: lastMonth,
   }));

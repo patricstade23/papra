@@ -3,6 +3,7 @@ export type Tag = {
   name: string;
   color: string;
   description: string | null;
+  prependNameToFile: boolean;
   documentsCount: number;
   organizationId: string;
   createdAt: Date;

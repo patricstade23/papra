@@ -3,6 +3,7 @@ import type { Logger } from '../../shared/logger/logger';
 import type { TagsRepository } from '../../tags/tags.repository';
 import type { DocumentSearchServices } from '../document-search/document-search.types';
 import type { DocumentsRepository } from '../documents.repository';
+import type { DocumentStorageService } from '../storage/documents.storage.services';
 import type { BatchTargetFilter } from './documents-batch.schemas';
 import { applyTagsToDocuments } from '../../tags/tags.usecases';
 import { createLogger } from '../../shared/logger/logger';
@@ -136,7 +137,9 @@ export async function tagDocumentsBatch({
   documentsRepository,
   tagsRepository,
   documentSearchServices,
+  documentsStorageService,
   eventServices,
+  renameStoredFileOnDocumentRename,
   logger = createLogger({ namespace: 'documents-batch.usecases' }),
 }: {
   filter: BatchTargetFilter;
@@ -147,7 +150,9 @@ export async function tagDocumentsBatch({
   documentsRepository: DocumentsRepository;
   tagsRepository: TagsRepository;
   documentSearchServices: DocumentSearchServices;
+  documentsStorageService?: DocumentStorageService;
   eventServices: EventServices;
+  renameStoredFileOnDocumentRename?: boolean;
   logger?: Logger;
 }) {
   const { documentIds } = await resolveBatchTargetDocumentIds({
@@ -179,6 +184,9 @@ export async function tagDocumentsBatch({
     userId,
     tagsRepository,
     eventServices,
+    documentsRepository,
+    documentsStorageService,
+    renameStoredFileOnDocumentRename,
     logger,
   });
 

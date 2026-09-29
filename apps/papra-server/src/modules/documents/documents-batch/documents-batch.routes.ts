@@ -59,7 +59,9 @@ function setupBatchTrashDocumentsRoute({
 function setupBatchTagDocumentsRoute({
   app,
   db,
+  config,
   documentSearchServices,
+  documentsStorageService,
   eventServices,
 }: RouteDefinitionContext) {
   app.post(
@@ -93,7 +95,9 @@ function setupBatchTagDocumentsRoute({
         documentsRepository,
         tagsRepository,
         documentSearchServices,
+        documentsStorageService,
         eventServices,
+        renameStoredFileOnDocumentRename: config.documentsStorage.pattern.renameStoredFileOnDocumentRename,
       });
 
       return context.body(null, 204);

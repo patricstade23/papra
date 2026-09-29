@@ -29,6 +29,8 @@ import { addIndexesMigration } from './list/0026-add-indexes.migration';
 import { aiCreditsMigration } from './list/0027-ai-credits.migration';
 import { documentViewsShowOnHomePageMigration } from './list/0028-document-views-show-on-home-page.migration';
 
+import { tagsPrependNameToFileMigration } from "./list/0029-tags-prepend-name-to-file.migration";
+
 export const migrations: Migration[] = [
   initialSchemaSetupMigration,
   documentsFtsMigration,
@@ -58,4 +60,5 @@ export const migrations: Migration[] = [
   addIndexesMigration,
   aiCreditsMigration,
   documentViewsShowOnHomePageMigration,
+  tagsPrependNameToFileMigration
 ];

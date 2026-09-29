@@ -4,7 +4,6 @@ import { API_KEY_PERMISSIONS } from '../api-keys/api-keys.constants';
 import { requireAuthentication } from '../app/auth/auth.middleware';
 import { getUser } from '../app/auth/auth.models';
 import { createDocumentActivityRepository } from '../documents/document-activity/document-activity.repository';
-import { deferRegisterDocumentActivityLog } from '../documents/document-activity/document-activity.usecases';
 import { createDocumentNotFoundError } from '../documents/documents.errors';
 import { createDocumentsRepository } from '../documents/documents.repository';
 import { documentIdSchema } from '../documents/documents.schemas';
@@ -14,8 +13,14 @@ import { ensureUserIsInOrganization } from '../organizations/organizations.useca
 import { validateJsonBody, validateParams } from '../shared/validation/validation';
 import { createTagNotFoundError } from './tags.errors';
 import { createTagsRepository } from './tags.repository';
-import { tagColorSchema, tagDescriptionSchema, tagIdSchema, tagNameSchema } from './tags.schemas';
-import { addTagToDocument, createTag } from './tags.usecases';
+import {
+  tagColorSchema,
+  tagDescriptionSchema,
+  tagIdSchema,
+  tagNameSchema,
+  tagPrependNameToFileSchema,
+} from './tags.schemas';
+import { addTagToDocument, createTag, removeTagFromDocument } from './tags.usecases';
 
 export function registerTagsRoutes(context: RouteDefinitionContext) {
   setupCreateNewTagRoute(context);
@@ -40,13 +45,14 @@ function setupCreateNewTagRoute({ app, db, config }: RouteDefinitionContext) {
         name: tagNameSchema,
         color: tagColorSchema,
         description: v.optional(tagDescriptionSchema),
+        prependNameToFile: v.optional(tagPrependNameToFileSchema),
       }),
     ),
     async (context) => {
       const { userId } = getUser({ context });
 
       const { organizationId } = context.req.valid('param');
-      const { name, color, description } = context.req.valid('json');
+      const { name, color, description, prependNameToFile } = context.req.valid('json');
 
       const tagsRepository = createTagsRepository({ db });
       const organizationsRepository = createOrganizationsRepository({ db });
@@ -58,6 +64,7 @@ function setupCreateNewTagRoute({ app, db, config }: RouteDefinitionContext) {
         name,
         color,
         description,
+        prependNameToFile,
         config,
         tagsRepository,
       });
@@ -112,13 +119,14 @@ function setupUpdateTagRoute({ app, db }: RouteDefinitionContext) {
         name: v.optional(tagNameSchema),
         color: v.optional(tagColorSchema),
         description: v.optional(tagDescriptionSchema),
+        prependNameToFile: v.optional(tagPrependNameToFileSchema),
       }),
     ),
     async (context) => {
       const { userId } = getUser({ context });
 
       const { organizationId, tagId } = context.req.valid('param');
-      const { name, color, description } = context.req.valid('json');
+      const { name, color, description, prependNameToFile } = context.req.valid('json');
 
       const tagsRepository = createTagsRepository({ db });
       const organizationsRepository = createOrganizationsRepository({ db });
@@ -131,6 +139,7 @@ function setupUpdateTagRoute({ app, db }: RouteDefinitionContext) {
         name,
         color,
         description,
+        prependNameToFile,
       });
 
       if (!tag) {
@@ -171,7 +180,7 @@ function setupDeleteTagRoute({ app, db }: RouteDefinitionContext) {
   );
 }
 
-function setupAddTagToDocumentRoute({ app, db, webhookTriggerServices }: RouteDefinitionContext) {
+function setupAddTagToDocumentRoute({ app, db, config, eventServices, documentsStorageService, webhookTriggerServices }: RouteDefinitionContext) {
   app.post(
     '/api/organizations/:organizationId/documents/:documentId/tags',
     requireAuthentication({
@@ -221,6 +230,10 @@ function setupAddTagToDocumentRoute({ app, db, webhookTriggerServices }: RouteDe
         userId,
         tag,
         tagsRepository,
+        documentsRepository,
+        documentsStorageService,
+        eventServices,
+        renameStoredFileOnDocumentRename: config.documentsStorage.pattern.renameStoredFileOnDocumentRename,
         webhookTriggerServices,
         documentActivityRepository,
       });
@@ -233,6 +246,9 @@ function setupAddTagToDocumentRoute({ app, db, webhookTriggerServices }: RouteDe
 function setupRemoveTagFromDocumentRoute({
   app,
   db,
+  config,
+  eventServices,
+  documentsStorageService,
   webhookTriggerServices,
 }: RouteDefinitionContext) {
   app.delete(
@@ -272,20 +288,19 @@ function setupRemoveTagFromDocumentRoute({
         throw createTagNotFoundError();
       }
 
-      await tagsRepository.removeTagFromDocument({ tagId, documentId });
-
-      webhookTriggerServices.deferTriggerWebhooks({
-        organizationId,
-        event: 'document:tag:removed',
-        payloads: [{ documentId, organizationId, tagId, tagName: tag.name }],
-      });
-
-      deferRegisterDocumentActivityLog({
-        documentId,
-        event: 'untagged',
-        userId,
-        documentActivityRepository,
+      await removeTagFromDocument({
         tagId,
+        documentId,
+        organizationId,
+        userId,
+        tag,
+        tagsRepository,
+        documentsRepository,
+        documentsStorageService,
+        eventServices,
+        renameStoredFileOnDocumentRename: config.documentsStorage.pattern.renameStoredFileOnDocumentRename,
+        webhookTriggerServices,
+        documentActivityRepository,
       });
 
       return context.body(null, 204);

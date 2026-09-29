@@ -759,6 +759,8 @@ export const translations = {
   'tags.form.description.placeholder': 'Eg. All the contracts signed by the company',
   'tags.form.description.max-length': 'Description must be less than 256 characters',
   'tags.form.no-description': 'No description',
+  'tags.form.prepend-name-to-file.label': 'Prepend tag name to file name',
+  'tags.form.prepend-name-to-file.description': 'When enabled, this tag\'s name is added to the front of the file name of documents it is assigned to.',
   'tags.table.headers.tag': 'Tag',
   'tags.table.headers.description': 'Description',
   'tags.table.headers.documents': 'Documents',
