@@ -3,6 +3,7 @@ import type { Component } from 'solid-js';
 import type { Document } from '../documents.types';
 import { A } from '@solidjs/router';
 import { Show } from 'solid-js';
+import { useConfig } from '@/modules/config/config.provider';
 import { useShareDocumentDialog } from '@/modules/document-share-links/components/share-document-dialog.component';
 import { useI18n } from '@/modules/i18n/i18n.provider';
 import { Button } from '@/modules/ui/components/button';
@@ -16,10 +17,16 @@ import {
   DropdownMenuTrigger,
 } from '@/modules/ui/components/dropdown-menu';
 import { getDocumentOpenWithApps } from '../document.models';
-import { useDeleteDocument, useDownloadDocument } from '../documents.composables';
+import {
+  useDeleteDocument,
+  useDownloadDocument,
+  useReprocessDocument,
+} from '../documents.composables';
 import { DocumentOpenWithDropdownItems } from './open-with.component';
 
 export const DocumentManagementDropdown: Component<{ document: Document }> = (props) => {
+  const { config } = useConfig();
+  const { reprocess, getIsReprocessing } = useReprocessDocument();
   const { deleteDocument } = useDeleteDocument();
   const { downloadDocument } = useDownloadDocument();
   const { openShareDialog } = useShareDocumentDialog();
@@ -43,7 +50,7 @@ export const DocumentManagementDropdown: Component<{ document: Document }> = (pr
           </Button>
         )}
       />
-      <DropdownMenuContent class="w-48">
+      <DropdownMenuContent class="min-w-48">
         <DropdownMenuItem
           class="cursor-pointer "
           as={A}
@@ -91,6 +98,17 @@ export const DocumentManagementDropdown: Component<{ document: Document }> = (pr
           <div class="i-tabler-share size-4 mr-2" />
           <span>{t('document-share-links.share-action')}</span>
         </DropdownMenuItem>
+
+        <Show when={config.documents.isReprocessingEnabled && !props.document.isDeleted}>
+          <DropdownMenuItem
+            class="cursor-pointer"
+            disabled={getIsReprocessing()}
+            onClick={async () => reprocess({ document: props.document })}
+          >
+            <div class="i-tabler-refresh size-4 mr-2" />
+            <span>{t('documents.reprocess.action')}</span>
+          </DropdownMenuItem>
+        </Show>
 
         <DropdownMenuItem class="cursor-pointer text-red" onClick={async () => deleteDoc()}>
           <div class="i-tabler-trash size-4 mr-2" />

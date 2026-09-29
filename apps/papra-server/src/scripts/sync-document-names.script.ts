@@ -10,7 +10,7 @@ import { count, eq } from 'drizzle-orm';
 import { createIterator } from '../modules/app/database/database.usecases';
 import { documentsTable } from '../modules/documents/documents.table';
 import { deriveRenamedStorageKey } from '../modules/documents/documents.models';
-import { createDocumentStorageService } from '../modules/documents/storage/documents.storage.services';
+import { createStorageService } from '../modules/storage/storage.services';
 import { ensureBooleanArg } from './commons/args.utils';
 import { runScriptWithDb } from './commons/run-script';
 
@@ -25,8 +25,12 @@ export async function syncDocumentStorageNames({
   isDryRun: boolean;
   prompts?: typeof p;
 }) {
-  const storageService = createDocumentStorageService({
-    documentStorageConfig: config.documentsStorage,
+  const storageService = createStorageService({
+    storageConfig: config.documentsStorage,
+    encryptionOptions: {
+      isEncryptionEnabled: config.documentsStorage.encryption.isEncryptionEnabled,
+      keyEncryptionKeys: config.documentsStorage.encryption.documentKeyEncryptionKeys,
+    },
   });
 
   prompts?.intro('Sync Document Storage Names');

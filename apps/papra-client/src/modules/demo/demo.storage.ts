@@ -146,6 +146,7 @@ export async function seedDemoStorage() {
     name: view.name,
     query: view.query,
     description: view.description,
+    showOnHomePage: false,
     createdAt: lastMonth,
     updatedAt: lastMonth,
   }));

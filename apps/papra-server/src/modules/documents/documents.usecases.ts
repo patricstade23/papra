@@ -14,15 +14,16 @@ import type { TagsRepository } from '../tags/tags.repository';
 import type { TaskServices } from '../tasks/tasks.services';
 import type { DocumentsRepository } from './documents.repository';
 import type { Document } from './documents.types';
-import type { DocumentStorageService } from './storage/documents.storage.services';
-import type { EncryptionContext } from './storage/drivers/drivers.models';
-import type { StoragePatternConfig } from './storage/patterns/storage-pattern.types';
+import type { StorageService } from '../storage/storage.services';
+import type { EncryptionContext } from '../storage/drivers/drivers.models';
+import type { CreateDocumentStorageKey } from './document-storage.usecases';
 import { PassThrough } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import { safely } from '@corentinth/chisels';
 import pLimit from 'p-limit';
 import { buildCustomPropertiesArray } from '../custom-properties/custom-properties.models';
 import { createOrganizationDocumentStorageLimitReachedError } from '../organizations/organizations.errors';
+import { createOrganizationsRepository } from '../organizations/organizations.repository';
 import { getOrganizationStorageLimits } from '../organizations/organizations.usecases';
 import { createPlanEntitlementsRepository } from '../plan-entitlements/plan-entitlements.repository';
 import { createPlanEntitlementDefinitionRegistry } from '../plan-entitlements/plan-entitlements.registry';
@@ -50,7 +51,8 @@ import {
   generateDocumentId as generateDocumentIdImpl,
 } from './documents.models';
 import { createDocumentsRepository } from './documents.repository';
-import { createStorageKey } from './storage/document-storage.usecases';
+import { buildCreateDocumentStorageKey } from './document-storage.usecases';
+import { buildResolveStoragePatternContext } from './storage-patterns/storage-pattern.usecases';
 import type { ExtractDocumentTextUsecase } from './content-extraction/content-extraction.usecases';
 
 type DocumentStorageContext = {
@@ -65,7 +67,7 @@ export async function createDocument({
   organizationId,
   ocrLanguages = [],
   isContentExtractionEnabled = true,
-  storagePatternConfig,
+  createDocumentStorageKey,
   documentsRepository,
   documentsStorageService,
   generateDocumentId = generateDocumentIdImpl,
@@ -86,9 +88,9 @@ export async function createDocument({
   organizationId: string;
   ocrLanguages?: string[];
   isContentExtractionEnabled?: boolean;
-  storagePatternConfig: StoragePatternConfig;
+  createDocumentStorageKey: CreateDocumentStorageKey;
   documentsRepository: DocumentsRepository;
-  documentsStorageService: DocumentStorageService;
+  documentsStorageService: StorageService;
   generateDocumentId?: () => string;
   plansRepository: PlansRepository;
   subscriptionsRepository: SubscriptionsRepository;
@@ -110,12 +112,13 @@ export async function createDocument({
   });
 
   const documentId = generateDocumentId();
-  const { storageKey, effectiveDocumentName } = await createStorageKey({
+  const createdAt = new Date();
+  const { storageKey } = await createDocumentStorageKey({
     documentId,
     documentName: fileName,
+    documentDate: null,
+    documentCreatedAt: createdAt,
     organizationId,
-    documentsStorageService,
-    storagePatternConfig,
   });
 
   const { tap: hashStream, getHash } = createSha256HashTransformer();
@@ -174,9 +177,9 @@ export async function createDocument({
         logger,
       })
     : await createNewDocument({
+        createdAt,
         newFileStorageContext: { storageKey, ...encryptionMetadata },
         fileName,
-        effectiveName: effectiveDocumentName,
         size,
         mimeType,
         hash,
@@ -219,7 +222,7 @@ export function createDocumentCreationUsecase({
 }: {
   db: Database;
   taskServices: TaskServices;
-  documentsStorageService: DocumentStorageService;
+  documentsStorageService: StorageService;
   eventServices: EventServices;
   config: Config;
 } & Partial<DocumentUsecaseDependencies>) {
@@ -237,7 +240,15 @@ export function createDocumentCreationUsecase({
       initialDeps.taggingRulesRepository ?? createTaggingRulesRepository({ db }),
     tagsRepository: initialDeps.tagsRepository ?? createTagsRepository({ db }),
 
-    storagePatternConfig: initialDeps.storagePatternConfig ?? config.documentsStorage.pattern,
+    createDocumentStorageKey:
+      initialDeps.createDocumentStorageKey ??
+      buildCreateDocumentStorageKey({
+        storagePatternConfig: config.documentsStorage.pattern,
+        documentsStorageService,
+        resolveStoragePatternContext: buildResolveStoragePatternContext({
+          organizationsRepository: createOrganizationsRepository({ db }),
+        }),
+      }),
     ocrLanguages: initialDeps.ocrLanguages ?? config.documents.ocrLanguages,
     isContentExtractionEnabled:
       initialDeps.isContentExtractionEnabled ?? config.documents.isContentExtractionEnabled,
@@ -275,7 +286,7 @@ async function handleExistingDocument({
   tagsRepository: TagsRepository;
   taggingRulesRepository: TaggingRulesRepository;
   eventServices: EventServices;
-  documentsStorageService: DocumentStorageService;
+  documentsStorageService: StorageService;
   newDocumentStorageKey: string;
   logger: Logger;
 }) {
@@ -344,8 +355,8 @@ async function handleExistingDocument({
 }
 
 async function createNewDocument({
+  createdAt,
   fileName,
-  effectiveName,
   size,
   mimeType,
   hash,
@@ -364,8 +375,8 @@ async function createNewDocument({
   isContentExtractionEnabled = true,
   logger,
 }: {
+  createdAt: Date;
   fileName: string;
-  effectiveName: string;
   size: number;
   mimeType: string;
   hash: string;
@@ -373,7 +384,7 @@ async function createNewDocument({
   organizationId: string;
   documentId: string;
   documentsRepository: DocumentsRepository;
-  documentsStorageService: DocumentStorageService;
+  documentsStorageService: StorageService;
   plansRepository: PlansRepository;
   subscriptionsRepository: SubscriptionsRepository;
   planEntitlementsRepository: PlanEntitlementsRepository;
@@ -409,7 +420,8 @@ async function createNewDocument({
   const [result, error] = await safely(
     documentsRepository.saveOrganizationDocument({
       id: documentId,
-      name: effectiveName,
+      createdAt,
+      name: fileName,
       organizationId,
       originalName: fileName,
       createdBy: userId,
@@ -486,7 +498,7 @@ export async function hardDeleteDocument({
 }: {
   document: Pick<Document, 'id' | 'originalStorageKey' | 'organizationId'>;
   documentsRepository: DocumentsRepository;
-  documentsStorageService: DocumentStorageService;
+  documentsStorageService: StorageService;
   eventServices: EventServices;
 }) {
   const [, fileDeleteError] = await safely(
@@ -516,7 +528,7 @@ export async function deleteExpiredDocuments({
   logger = createLogger({ namespace: 'documents:deleteExpiredDocuments' }),
 }: {
   documentsRepository: DocumentsRepository;
-  documentsStorageService: DocumentStorageService;
+  documentsStorageService: StorageService;
   eventServices: EventServices;
   config: Config;
   now?: Date;
@@ -563,7 +575,7 @@ export async function deleteTrashDocument({
   documentId: string;
   organizationId: string;
   documentsRepository: DocumentsRepository;
-  documentsStorageService: DocumentStorageService;
+  documentsStorageService: StorageService;
   eventServices: EventServices;
 }) {
   const { document } = await documentsRepository.getDocumentById({ documentId, organizationId });
@@ -592,7 +604,7 @@ export async function deleteAllTrashDocuments({
 }: {
   organizationId: string;
   documentsRepository: DocumentsRepository;
-  documentsStorageService: DocumentStorageService;
+  documentsStorageService: StorageService;
   eventServices: EventServices;
 }) {
   const { documents } = await documentsRepository.getAllOrganizationTrashDocuments({
@@ -630,7 +642,7 @@ export async function extractAndSaveDocumentFileContent({
   documentId: string;
   organizationId: string;
   documentsRepository: DocumentsRepository;
-  documentsStorageService: DocumentStorageService;
+  documentsStorageService: StorageService;
   taggingRulesRepository: TaggingRulesRepository;
   tagsRepository: TagsRepository;
   eventServices: EventServices;
@@ -822,7 +834,7 @@ export async function updateDocument({
   userId?: string;
   documentsRepository: DocumentsRepository;
   eventServices: EventServices;
-  documentsStorageService?: DocumentStorageService;
+  documentsStorageService?: StorageService;
   renameStoredFileOnDocumentRename?: boolean;
   changes: {
     name?: string;

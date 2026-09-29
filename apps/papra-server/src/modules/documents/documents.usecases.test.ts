@@ -1,5 +1,5 @@
 import type { PlansRepository } from '../plans/plans.repository';
-import type { DocumentStorageService } from './storage/documents.storage.services';
+import type { StorageService } from '../storage/storage.services';
 import { describe, expect, test } from 'vitest';
 import { createInMemoryDatabase } from '../app/database/database.test-utils';
 import { createTestEventServices } from '../app/events/events.test-utils';
@@ -7,6 +7,7 @@ import { overrideConfig } from '../config/config.test-utils';
 import { createCustomPropertiesRepository } from '../custom-properties/custom-properties.repository';
 import { ORGANIZATION_ROLES } from '../organizations/organizations.constants';
 import { createOrganizationDocumentStorageLimitReachedError } from '../organizations/organizations.errors';
+import { createOrganizationsRepository } from '../organizations/organizations.repository';
 import { createDeterministicIdGenerator } from '../shared/random/ids';
 import {
   collectReadableStreamToString,
@@ -30,11 +31,102 @@ import {
   trashDocument,
   updateDocument,
 } from './documents.usecases';
-import { createDocumentStorageService } from './storage/documents.storage.services';
-import { createInMemoryDocumentStorageServices } from './storage/documents.storage.services.test-utils';
+import { createStorageService } from '../storage/storage.services';
+import { createInMemoryStorageService } from '../storage/storage.test-utils';
 
 describe('documents usecases', () => {
   describe('createDocument', () => {
+    test('new uploads use the current organization name while older uploads retain their keys', async () => {
+      const { db } = await createInMemoryDatabase({
+        organizations: [{ id: 'organization-1', name: 'Acme/Finance' }],
+      });
+      const documentsStorageService = createInMemoryStorageService();
+      const createDocument = createDocumentCreationUsecase({
+        db,
+        config: overrideConfig({
+          organizationPlans: { isFreePlanUnlimited: true },
+          documentsStorage: {
+            pattern: {
+              useLegacyStorageKeyDefinitionSystem: false,
+              storageKeyPattern: '{{organization.name | lowercase}}/{{document.name}}',
+            },
+          },
+        }),
+        documentsStorageService,
+        taskServices: createInMemoryTaskServices(),
+        eventServices: createTestEventServices(),
+      });
+
+      const { document: firstDocument } = await createDocument({
+        fileStream: createReadableStream({ content: 'First upload' }),
+        fileName: 'file.txt',
+        mimeType: 'text/plain',
+        organizationId: 'organization-1',
+      });
+
+      await createOrganizationsRepository({ db }).updateOrganization({
+        organizationId: 'organization-1',
+        organization: { name: 'New Organization' },
+      });
+
+      const { document: secondDocument } = await createDocument({
+        fileStream: createReadableStream({ content: 'Second upload' }),
+        fileName: 'file.txt',
+        mimeType: 'text/plain',
+        organizationId: 'organization-1',
+      });
+
+      expect(firstDocument.originalStorageKey).toEqual('acme_finance/file.txt');
+      expect(secondDocument.originalStorageKey).toEqual('new organization/file.txt');
+      expect(
+        (
+          await createDocumentsRepository({ db }).getDocumentById({
+            documentId: firstDocument.id,
+            organizationId: 'organization-1',
+          })
+        ).document?.originalStorageKey,
+      ).toEqual('acme_finance/file.txt');
+      expect([...documentsStorageService._getStorage().keys()].sort()).toEqual([
+        'acme_finance/file.txt',
+        'new organization/file.txt',
+      ]);
+    });
+
+    test('a new document key uses its persisted creation timestamp and the missing-date fallback', async () => {
+      const { db } = await createInMemoryDatabase({
+        organizations: [{ id: 'organization-1', name: 'Organization 1' }],
+      });
+      const documentsStorageService = createInMemoryStorageService();
+      const createDocument = createDocumentCreationUsecase({
+        db,
+        config: overrideConfig({
+          organizationPlans: { isFreePlanUnlimited: true },
+          documentsStorage: {
+            pattern: {
+              useLegacyStorageKeyDefinitionSystem: false,
+              storageKeyPattern:
+                '{{document.createdAt}}/{{document.date | formatDate}}/{{document.name}}',
+            },
+          },
+        }),
+        documentsStorageService,
+        taskServices: createInMemoryTaskServices(),
+        eventServices: createTestEventServices(),
+      });
+
+      const { document } = await createDocument({
+        fileStream: createReadableStream({ content: 'Hello, world!' }),
+        fileName: 'file.txt',
+        mimeType: 'text/plain',
+        organizationId: 'organization-1',
+      });
+
+      const storageKey = `${document.createdAt.toISOString()}/no-date/file.txt`;
+      expect(document.originalStorageKey).toEqual(storageKey);
+      expect(await db.select().from(documentsTable)).toEqual([document]);
+      expect(await documentsStorageService.fileExists({ storageKey })).toEqual(true);
+    });
+
     test('creating a document save the file to the storage and registers a record in the db', async () => {
       const taskServices = createInMemoryTaskServices();
       const { db } = await createInMemoryDatabase({
@@ -49,8 +141,12 @@ describe('documents usecases', () => {
         organizationPlans: { isFreePlanUnlimited: true },
         documentsStorage: { driver: 'in-memory' },
       });
-      const documentsStorageService = createDocumentStorageService({
-        documentStorageConfig: config.documentsStorage,
+      const documentsStorageService = createStorageService({
+        storageConfig: config.documentsStorage,
+        encryptionOptions: {
+          isEncryptionEnabled: config.documentsStorage.encryption.isEncryptionEnabled,
+          keyEncryptionKeys: config.documentsStorage.encryption.documentKeyEncryptionKeys,
+        },
       });
 
       const createDocument = createDocumentCreationUsecase({
@@ -116,8 +212,12 @@ describe('documents usecases', () => {
         documentsStorage: { driver: 'in-memory' },
       });
 
-      const documentsStorageService = createDocumentStorageService({
-        documentStorageConfig: config.documentsStorage,
+      const documentsStorageService = createStorageService({
+        storageConfig: config.documentsStorage,
+        encryptionOptions: {
+          isEncryptionEnabled: config.documentsStorage.encryption.isEncryptionEnabled,
+          keyEncryptionKeys: config.documentsStorage.encryption.documentKeyEncryptionKeys,
+        },
       });
 
       let documentIdIndex = 1;
@@ -260,7 +360,7 @@ describe('documents usecases', () => {
         db,
         config,
         taskServices,
-        documentsStorageService: createInMemoryDocumentStorageServices(),
+        documentsStorageService: createInMemoryStorageService(),
         eventServices: createTestEventServices(),
       });
 
@@ -313,7 +413,7 @@ describe('documents usecases', () => {
         documentsStorage: { driver: 'in-memory' },
       });
       const documentsRepository = createDocumentsRepository({ db });
-      const inMemoryDocumentsStorageService = createInMemoryDocumentStorageServices();
+      const inMemoryDocumentsStorageService = createInMemoryStorageService();
 
       const createDocument = createDocumentCreationUsecase({
         db,
@@ -392,7 +492,7 @@ describe('documents usecases', () => {
       });
 
       const documentsRepository = createDocumentsRepository({ db });
-      const inMemoryDocumentsStorageService = createInMemoryDocumentStorageServices();
+      const inMemoryDocumentsStorageService = createInMemoryStorageService();
 
       const createDocument = createDocumentCreationUsecase({
         db,
@@ -471,8 +571,12 @@ describe('documents usecases', () => {
       });
 
       const documentsRepository = createDocumentsRepository({ db });
-      const documentsStorageService = createDocumentStorageService({
-        documentStorageConfig: config.documentsStorage,
+      const documentsStorageService = createStorageService({
+        storageConfig: config.documentsStorage,
+        encryptionOptions: {
+          isEncryptionEnabled: config.documentsStorage.encryption.isEncryptionEnabled,
+          keyEncryptionKeys: config.documentsStorage.encryption.documentKeyEncryptionKeys,
+        },
       });
 
       const createDocument = createDocumentCreationUsecase({
@@ -522,7 +626,7 @@ describe('documents usecases', () => {
         ],
       });
 
-      const inMemoryDocumentsStorageService = createInMemoryDocumentStorageServices();
+      const inMemoryDocumentsStorageService = createInMemoryStorageService();
 
       const plansRepository = {
         getOrganizationPlanById: async (_args) => ({
@@ -577,7 +681,7 @@ describe('documents usecases', () => {
 
       const { promise, resolve } = Promise.withResolvers();
 
-      const inMemoryDocumentsStorageService = createInMemoryDocumentStorageServices();
+      const inMemoryDocumentsStorageService = createInMemoryStorageService();
       const documentsStorageService = {
         ...inMemoryDocumentsStorageService,
         saveFile: async (args) => {
@@ -590,7 +694,7 @@ describe('documents usecases', () => {
 
           return inMemoryDocumentsStorageService.saveFile(args);
         },
-      } as DocumentStorageService;
+      } as StorageService;
 
       const plansRepository = {
         getOrganizationPlanById: async (_args) => ({
@@ -653,7 +757,7 @@ describe('documents usecases', () => {
         ],
       });
 
-      const inMemoryDocumentsStorageService = createInMemoryDocumentStorageServices();
+      const inMemoryDocumentsStorageService = createInMemoryStorageService();
 
       const plansRepository = {
         getOrganizationPlanById: async (_args) => ({
@@ -713,7 +817,7 @@ describe('documents usecases', () => {
         db,
         config,
         generateDocumentId: () => `doc_${documentIdIndex++}`,
-        documentsStorageService: createInMemoryDocumentStorageServices(),
+        documentsStorageService: createInMemoryStorageService(),
         taskServices,
         eventServices,
       });
@@ -760,8 +864,12 @@ describe('documents usecases', () => {
       });
 
       const documentsRepository = createDocumentsRepository({ db });
-      const documentsStorageService = createDocumentStorageService({
-        documentStorageConfig: config.documentsStorage,
+      const documentsStorageService = createStorageService({
+        storageConfig: config.documentsStorage,
+        encryptionOptions: {
+          isEncryptionEnabled: config.documentsStorage.encryption.isEncryptionEnabled,
+          keyEncryptionKeys: config.documentsStorage.encryption.documentKeyEncryptionKeys,
+        },
       });
       const taggingRulesRepository = createTaggingRulesRepository({ db });
       const tagsRepository = createTagsRepository({ db });
@@ -821,8 +929,12 @@ describe('documents usecases', () => {
       });
 
       const documentsRepository = createDocumentsRepository({ db });
-      const documentsStorageService = createDocumentStorageService({
-        documentStorageConfig: config.documentsStorage,
+      const documentsStorageService = createStorageService({
+        storageConfig: config.documentsStorage,
+        encryptionOptions: {
+          isEncryptionEnabled: config.documentsStorage.encryption.isEncryptionEnabled,
+          keyEncryptionKeys: config.documentsStorage.encryption.documentKeyEncryptionKeys,
+        },
       });
       const taggingRulesRepository = createTaggingRulesRepository({ db });
       const tagsRepository = createTagsRepository({ db });
@@ -1279,40 +1391,42 @@ describe('documents usecases', () => {
         changes: { name: 'new-name.txt', content: 'Updated content' },
       });
 
-      expect(eventServices.getEmittedEvents()).to.eql([
-        {
-          eventName: 'document.updated',
-          payload: {
-            changes: {
-              content: 'Updated content',
-              name: 'new-name.txt',
-            },
-            document: {
-              content: 'Updated content',
-              createdAt: new Date('2025-12-10'),
-              createdBy: null,
-              deletedAt: null,
-              deletedBy: null,
-              fileEncryptionAlgorithm: null,
-              fileEncryptionKekVersion: null,
-              fileEncryptionKeyWrapped: null,
-              id: 'document-1',
-              isDeleted: false,
-              mimeType: 'text/plain',
-              notes: null,
-              name: 'new-name.txt',
-              documentDate: null,
-              organizationId: 'organization-1',
-              originalName: 'file-1.txt',
-              originalSha256Hash: 'hash',
-              originalSize: 0,
-              originalStorageKey: 'organization-1/originals/document-1.txt',
-              updatedAt: new Date('2025-12-11'),
-            },
-            userId: 'user-1',
+      const emittedEvents = eventServices.getEmittedEvents();
+
+      expect(emittedEvents.length).to.eql(1);
+      const event = emittedEvents[0];
+
+      expect(event).toMatchObject({
+        eventName: 'document.updated',
+        payload: {
+          changes: {
+            content: 'Updated content',
+            name: 'new-name.txt',
           },
+          document: {
+            content: 'Updated content',
+            createdAt: new Date('2025-12-10'),
+            createdBy: null,
+            deletedAt: null,
+            deletedBy: null,
+            fileEncryptionAlgorithm: null,
+            fileEncryptionKekVersion: null,
+            fileEncryptionKeyWrapped: null,
+            id: 'document-1',
+            isDeleted: false,
+            mimeType: 'text/plain',
+            notes: null,
+            name: 'new-name.txt',
+            documentDate: null,
+            organizationId: 'organization-1',
+            originalName: 'file-1.txt',
+            originalSha256Hash: 'hash',
+            originalSize: 0,
+            originalStorageKey: 'organization-1/originals/document-1.txt',
+          },
+          userId: 'user-1',
         },
-      ]);
+      });
     });
   });
 });

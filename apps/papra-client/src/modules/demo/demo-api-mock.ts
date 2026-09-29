@@ -1433,6 +1433,7 @@ const inMemoryApiMock: Record<string, { handler: any }> = {
       const name = get(body, ['name']) as string;
       const query = get(body, ['query']) as string;
       const description = (get(body, ['description']) ?? null) as string | null;
+      const showOnHomePage = (get(body, ['showOnHomePage']) ?? false) as boolean;
 
       const existingViewsWithSameName = await findMany(
         documentViewStorage,
@@ -1453,6 +1454,7 @@ const inMemoryApiMock: Record<string, { handler: any }> = {
         name,
         query,
         description,
+        showOnHomePage,
         createdAt: new Date(),
         updatedAt: new Date(),
       };

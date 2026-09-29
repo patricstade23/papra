@@ -39,7 +39,7 @@ describe('document views e2e', () => {
     );
 
     expect(response.status).to.eql(200);
-    const { documentView } = await response.json();
+    const { documentView } = (await response.json()) as { documentView: { showOnHomePage: boolean } };
     expect(documentView.showOnHomePage).to.eql(false);
   });
 
@@ -57,7 +57,7 @@ describe('document views e2e', () => {
     );
 
     expect(response.status).to.eql(200);
-    const { documentView } = await response.json();
+    const { documentView } = (await response.json()) as { documentView: { showOnHomePage: boolean } };
     expect(documentView.showOnHomePage).to.eql(true);
   });
 
@@ -73,7 +73,7 @@ describe('document views e2e', () => {
       },
       { loggedInUserId: USER_ID },
     );
-    const { documentView: created } = await createResponse.json();
+    const { documentView: created } = (await createResponse.json()) as { documentView: { id: string; showOnHomePage: boolean } };
     expect(created.showOnHomePage).to.eql(false);
 
     const updateResponse = await app.request(
@@ -87,7 +87,7 @@ describe('document views e2e', () => {
     );
 
     expect(updateResponse.status).to.eql(200);
-    const { documentView: updated } = await updateResponse.json();
+    const { documentView: updated } = (await updateResponse.json()) as { documentView: { showOnHomePage: boolean } };
     expect(updated.showOnHomePage).to.eql(true);
   });
 
@@ -103,7 +103,7 @@ describe('document views e2e', () => {
       },
       { loggedInUserId: USER_ID },
     );
-    const { documentView: created } = await createResponse.json();
+    const { documentView: created } = (await createResponse.json()) as { documentView: { id: string; showOnHomePage: boolean } };
 
     const updateResponse = await app.request(
       `/api/organizations/${ORG_ID}/document-views/${created.id}`,
@@ -116,7 +116,7 @@ describe('document views e2e', () => {
     );
 
     expect(updateResponse.status).to.eql(200);
-    const { documentView: updated } = await updateResponse.json();
+    const { documentView: updated } = (await updateResponse.json()) as { documentView: { showOnHomePage: boolean } };
     expect(updated.showOnHomePage).to.eql(false);
   });
 
@@ -149,12 +149,12 @@ describe('document views e2e', () => {
     );
 
     expect(listResponse.status).to.eql(200);
-    const { documentViews } = await listResponse.json();
+    const { documentViews } = (await listResponse.json()) as { documentViews: { name: string; showOnHomePage: boolean }[] };
     expect(documentViews).to.have.length(2);
 
     const viewA = documentViews.find((v: { name: string }) => v.name === 'View A');
     const viewB = documentViews.find((v: { name: string }) => v.name === 'View B');
-    expect(viewA.showOnHomePage).to.eql(true);
-    expect(viewB.showOnHomePage).to.eql(false);
+    expect(viewA!.showOnHomePage).to.eql(true);
+    expect(viewB!.showOnHomePage).to.eql(false);
   });
 });

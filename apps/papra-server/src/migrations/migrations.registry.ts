@@ -27,7 +27,8 @@ import { userPlanEntitlementsMigration } from './list/0024-user-plan-entitlement
 import { addOrganizationSettingsTableMigration } from './list/0025-add-organization-settings-table.migration';
 import { addIndexesMigration } from './list/0026-add-indexes.migration';
 import { aiCreditsMigration } from './list/0027-ai-credits.migration';
-import { documentViewsShowOnHomePageMigration } from './list/0028-document-views-show-on-home-page.migration';
+import { pendingOrganizationInvitationsUniqueMigration } from './list/0028-pending-organization-invitations-unique.migration';
+import { documentViewsShowOnHomePageMigration } from './list/0029-document-views-show-on-home-page.migration';
 
 export const migrations: Migration[] = [
   initialSchemaSetupMigration,
@@ -57,5 +58,6 @@ export const migrations: Migration[] = [
   addOrganizationSettingsTableMigration,
   addIndexesMigration,
   aiCreditsMigration,
+  pendingOrganizationInvitationsUniqueMigration,
   documentViewsShowOnHomePageMigration,
 ];

@@ -614,11 +614,7 @@ export const DocumentPage: Component = () => {
                     </TabsContent>
 
                     <TabsContent value="content">
-                      <DocumentContentEditionPanel
-                        documentId={getDocument().id}
-                        organizationId={params.organizationId}
-                        content={getDocument().content}
-                      />
+                      <DocumentContentEditionPanel document={getDocument()} />
                     </TabsContent>
                     <TabsContent value="activity">
                       <Show when={activityQuery.data?.pages}>

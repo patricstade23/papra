@@ -13,7 +13,10 @@ describe('config models', () => {
         - auth.showLegalLinksOnAuthPage Whether to show Papra legal links on the auth pages
         - auth.providers.*.isEnabled Wether a oauth provider is enabled
         - documents.deletedExpirationDelayInDays The delay in days before a deleted document is permanently deleted
+        - documents.isReprocessingEnabled Whether existing documents can be reprocessed
         - intakeEmails.isEnabled Whether intake emails are enabled
+        - intakeEmails.address.canCustomizeUsername Whether intake email usernames can be customized
+        - intakeEmails.address.domains The domains available for intake email creation
         - auth.providers.email.isEnabled Whether email/password authentication is enabled
         - organizations.deletedOrganizationsPurgeDaysDelay The delay in days before a soft-deleted organization is permanently purged
 
@@ -38,16 +41,31 @@ describe('config models', () => {
         },
         documents: {
           deletedDocumentsRetentionDays: 30,
+          isReprocessingEnabled: true,
         },
         intakeEmails: {
           isEnabled: true,
+          driver: 'catch-all',
+          drivers: {
+            catchAll: {
+              domain: 'example.com',
+            },
+          },
+          username: {
+            canCustomize: true,
+          },
         },
         organizations: {
           deletedOrganizationsPurgeDaysDelay: 30,
         },
       } as DeepPartial<Config>);
 
-      expect(getPublicConfig({ config })).to.eql({
+      expect(
+        getPublicConfig({
+          config,
+          intakeEmailsServices: { getDomains: () => ['example.com'] },
+        }),
+      ).to.eql({
         publicConfig: {
           version: 'dev',
           gitCommitSha: 'unknown',
@@ -72,9 +90,14 @@ describe('config models', () => {
           },
           documents: {
             deletedDocumentsRetentionDays: 30,
+            isReprocessingEnabled: true,
           },
           intakeEmails: {
             isEnabled: true,
+            address: {
+              canCustomizeUsername: true,
+              domains: ['example.com'],
+            },
           },
           organizations: {
             deletedOrganizationsPurgeDaysDelay: 30,
@@ -82,6 +105,38 @@ describe('config models', () => {
           autoTagging: {
             isEnabled: false,
           },
+        },
+      });
+    });
+
+    test('exposes an empty domain list when the intake email driver has no selectable domains', () => {
+      const config = overrideConfig();
+
+      expect(
+        getPublicConfig({ config, intakeEmailsServices: { getDomains: () => [] } }).publicConfig
+          .intakeEmails,
+      ).to.eql({
+        isEnabled: false,
+        address: {
+          canCustomizeUsername: false,
+          domains: [],
+        },
+      });
+    });
+
+    test('exposes the selectable domains returned by the intake email driver', () => {
+      const config = overrideConfig();
+
+      expect(
+        getPublicConfig({
+          config,
+          intakeEmailsServices: { getDomains: () => ['relay.example.com'] },
+        }).publicConfig.intakeEmails,
+      ).to.eql({
+        isEnabled: false,
+        address: {
+          canCustomizeUsername: false,
+          domains: ['relay.example.com'],
         },
       });
     });
